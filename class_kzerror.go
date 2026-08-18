@@ -4,16 +4,15 @@ import (
 	"fmt"
 	jsoniter "github.com/json-iterator/go"
 	"log"
+	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/bwmarrin/snowflake"
-	"github.com/idgenerator-go/idgen"
-	"github.com/kardianos/osext"
+	"github.com/yitter/idgenerator-go/idgen"
 	//"github.com/satori/go.uuid"
 	"github.com/gofrs/uuid/v5"
 )
-
-var eror error
 
 type TErrorMsg struct {
 	RowIndex int64  `json:"rowIndex"`
@@ -220,6 +219,7 @@ func ToErrorCnt(ErorMemo string, ErrorKey string, ErrorCnt int64) TEROR {
 	result.ErorMemo = ErorMemo
 	result.ErrLevel = 0
 	result.ErrorKey = ErrorKey
+	result.ErrorCnt = ErrorCnt
 
 	result.DataDate = ToDate()
 	result.DataTime = ToTime()
@@ -283,19 +283,29 @@ func ToLite(EntityID string) string {
 	if EntityID == "" {
 		return ""
 	}
+	if len(EntityID) < 6 {
+		return EntityID
+	}
 	return fmt.Sprintf("%s...%s", EntityID[1:5], EntityID[len(EntityID)-5:len(EntityID)-1])
 }
+
+var (
+	snowflakeOnce sync.Once
+	snowflakeNode *snowflake.Node
+	snowflakeEror error
+)
 
 // #生成长度19位 超出 9007199254740992(2的53次方)
 func ToNext19() int64 {
 
-	var Snowflake *snowflake.Node
-	Snowflake, eror = snowflake.NewNode(1)
-	if eror != nil {
+	snowflakeOnce.Do(func() {
+		snowflakeNode, snowflakeEror = snowflake.NewNode(1)
+	})
+	if snowflakeEror != nil {
 		return 0
 	}
 
-	return Snowflake.Generate().Int64()
+	return snowflakeNode.Generate().Int64()
 }
 
 // #生成长度16位 未超 9007199254740992(2的53次方)
@@ -315,7 +325,7 @@ func ToNext() int64 {
 
 func AtRoot() string {
 
-	FilePath, eror := osext.Executable()
+	FilePath, eror := os.Executable()
 	if eror != nil {
 		return ""
 	}

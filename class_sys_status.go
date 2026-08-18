@@ -3,7 +3,6 @@ package KzPack4Go
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kardianos/osext"
 	"github.com/sirupsen/logrus"
 	"github.com/tidwall/sjson"
 	"os"
@@ -18,6 +17,7 @@ const CONST_DATA_FROM_TO_钉钉 = 1 //#钉钉
 const CONST_DATA_FROM_TO_微信 = 2 //#微信
 const CONST_DATA_FROM_TO_安卓 = 3 //#安卓
 const CONST_DATA_FROM_T0_苹果 = 4 //#苹果
+const CONST_DATA_FROM_TO_苹果 = 4 //#苹果(修正拼写,与T0别名等价)
 
 type TSYSSTATUS struct {
 	WhoBuild int64   `db:"who_build" json:"whoBuild"`
@@ -142,7 +142,6 @@ func (this TSYSSTATUS) MarshalJSON() ([]byte, error) {
 	result["msgTitle"] = this.MsgTitle
 	result["msgState"] = this.MsgState
 
-
 	return json.Marshal(result)
 }
 
@@ -236,7 +235,7 @@ func (this TSYSSTATUS) ToFeedCard1() string {
 
 	var JsonText string
 	JsonText, _ = sjson.Set(JsonText, "msgtype", "feedCard")
-	JsonText, _ = sjson.Set(JsonText, "feedCard.links.-1", map[string]interface{}{"messageURL": this.Path4URL, "picURL": this.BkColour, "title": fmt.Sprintf("日志标识: %s...%s", this.EntityID[1:5], this.EntityID[len(this.EntityID)-5:len(this.EntityID)-1])})
+	JsonText, _ = sjson.Set(JsonText, "feedCard.links.-1", map[string]interface{}{"messageURL": this.Path4URL, "picURL": this.BkColour, "title": fmt.Sprintf("日志标识: %s", ToLite(this.EntityID))})
 	JsonText, _ = sjson.Set(JsonText, "feedCard.links.-1", map[string]interface{}{"messageURL": this.Path4URL, "title": fmt.Sprintf("服务标识: %s", this.Name4App)})
 	JsonText, _ = sjson.Set(JsonText, "feedCard.links.-1", map[string]interface{}{"messageURL": this.Path4URL, "title": fmt.Sprintf("请求链接: %s", this.Url4Path)})
 	JsonText, _ = sjson.Set(JsonText, "feedCard.links.-1", map[string]interface{}{"messageURL": this.Path4URL, "title": fmt.Sprintf("请求地址: %s", this.ClientIP)})
@@ -265,7 +264,7 @@ func (this TSYSSTATUS) ToFeedCard2() string {
 
 func (this *TSYSSTATUS) ToErrorLog(TokenUsr TTokenUsr, SrvConfig TSrvConfig, BotConfig TBotConfig, LoggerFx *logrus.Logger) error {
 
-	FilePath, eror := osext.Executable()
+	FilePath, eror := os.Executable()
 	if eror != nil {
 		return eror
 	}
@@ -295,6 +294,18 @@ func (this *TSYSSTATUS) ToErrorLog(TokenUsr TTokenUsr, SrvConfig TSrvConfig, Bot
 		{
 			this.FromText = "移动终端"
 		}
+	case CONST_DATA_FROM_TO_微信:
+		{
+			this.FromText = "微信终端"
+		}
+	case CONST_DATA_FROM_TO_安卓:
+		{
+			this.FromText = "安卓终端"
+		}
+	case CONST_DATA_FROM_T0_苹果:
+		{
+			this.FromText = "苹果终端"
+		}
 	}
 
 	//#保存日志
@@ -306,7 +317,7 @@ func (this *TSYSSTATUS) ToErrorLog(TokenUsr TTokenUsr, SrvConfig TSrvConfig, Bot
 	//#保存请求
 	RealPath = strings.ReplaceAll(RealPath, ".log", ".req")
 	this.Path4Req = RealPath
-	eror = os.WriteFile(RealPath, []byte(this.RqSource), 0666)
+	eror = os.WriteFile(RealPath, []byte(this.RqSource), CONST_CORE_PATH_TO_文件权限)
 	if eror != nil {
 		return eror
 	}

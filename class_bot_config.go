@@ -7,9 +7,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/go-resty/resty"
 	"github.com/tidwall/gjson"
-	"io/ioutil"
+	"gopkg.in/resty.v1"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -46,9 +46,9 @@ func (this TBotConfig) ToErrorMsg1(ErrorMsg string) {
 			var ListText = make([]string, 0)
 			ListText = strings.Split(this.EndPoint, ",")
 
+			ClientGo := resty.New()
 			for _, ItemPara := range ListText {
 
-				ClientGo := resty.New()
 				Request1 := ClientGo.R()
 				Request1.SetFormData(map[string]string{"params": string(ErrorMsg)})
 
@@ -79,13 +79,14 @@ func (this TBotConfig) ToErrorMsg1(ErrorMsg string) {
 			response, err := client.Post(sRequest, "application/json", requestBody)
 			if err != nil {
 				fmt.Println(err.Error())
+				return
 			}
 			defer response.Body.Close()
 
 			if response.StatusCode == http.StatusOK {
-				_, err := ioutil.ReadAll(response.Body)
+				_, err := io.ReadAll(response.Body)
 				if err != nil {
-					fmt.Println(eror.Error())
+					fmt.Println(err.Error())
 				}
 			}
 		}
@@ -114,9 +115,9 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 			var ListText = make([]string, 0)
 			ListText = strings.Split(this.EndPoint, ",")
 
+			ClientGo := resty.New()
 			for _, ItemPara := range ListText {
 
-				ClientGo := resty.New()
 				Request1 := ClientGo.R()
 
 				switch this.UploadD2 {
@@ -133,9 +134,7 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 						file, eror := os.Stat(SysStatus.Path4Req)
 						if eror != nil {
 							fmt.Println(eror.Error())
-						}
-
-						if file.Size() > 0 {
+						} else if file.Size() > 0 {
 
 							FileByte, _ := os.ReadFile(SysStatus.Path4Req)
 							Request1.SetFileReader(FormPara, fmt.Sprintf("%s.req", SysStatus.EntityID), bytes.NewReader(FileByte))
@@ -187,13 +186,14 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 			response, err := client.Post(sRequest, "application/json", requestBody)
 			if err != nil {
 				fmt.Println(err.Error())
+				return
 			}
 			defer response.Body.Close()
 
 			if response.StatusCode == http.StatusOK {
-				_, err := ioutil.ReadAll(response.Body)
+				_, err := io.ReadAll(response.Body)
 				if err != nil {
-					fmt.Println(eror.Error())
+					fmt.Println(err.Error())
 				}
 			}
 		}

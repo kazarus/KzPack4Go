@@ -31,7 +31,7 @@ type TSrvConfig struct {
 	Path2PDF string //#文档转换服务(甬政开发)
 	Path2TXT string //#图文转换服务(甬政开发)
 
-	RedisTyp int64  //#启用缓存集群{0,1:禁用;2:启用}
+	RedisTyp int64  //#缓存服务类型{0,1:单机;2:集群}
 	RedisKey string //#缓存服务标识(默认监听端口)
 	RedisSrv string //#缓存服务地址
 	RedisPwd string //#缓存服务密码
@@ -243,8 +243,8 @@ func (this *TSrvConfig) ToDefault() {
 	//#20250110
 	this.LockYear = this.LockKJND
 	this.RealYear = this.RealKJND
-	this.MakeYearWhenTodo = 1 //#申请用户必传年度
-	this.VoidYearWhenTodo = 0 //#审核用户不传年度
+	this.MakeYearWhenTodo = IfThenI(this.MakeYearWhenTodo == 0, 1, this.MakeYearWhenTodo) //#申请用户必传年度.{默认:1,配置文件可覆盖}
+	this.VoidYearWhenTodo = IfThenI(this.VoidYearWhenTodo == 0, 0, this.VoidYearWhenTodo) //#审核用户不传年度.{默认:0,配置文件可覆盖}
 }
 
 func (this *TSrvConfig) ClearAttr() {

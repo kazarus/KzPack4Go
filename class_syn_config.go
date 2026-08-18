@@ -1,6 +1,6 @@
 package KzPack4Go
 
-//#同步配置
+// #同步配置
 type TSynConfig struct {
 	StartDay int64  `json:"startDay"` //#起始日期
 	EndedDay int64  `json:"endedDay"` //#截止日期

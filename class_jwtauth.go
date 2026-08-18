@@ -1,9 +1,9 @@
 package KzPack4Go
 
 import "fmt"
+
 //import "github.com/dgrijalva/jwt-go"
 import "github.com/golang-jwt/jwt/v5"
-
 
 type TKzCustomClaims struct {
 	WhoBuild int64   `json:"whoBuild"` //#租户实例
@@ -32,14 +32,16 @@ type TTokenUsr struct {
 	Url4Path string `json:"url4Path"` //#请求链接
 }
 
-
-
 func ParseToken1(tokenString string, tokenSecret string) (*TKzCustomClaims, error) {
 
 	KzSecret := []byte(tokenSecret)
 
 	var KzClaims = TKzCustomClaims{}
 	MyClaims, eror := jwt.ParseWithClaims(tokenString, &KzClaims, func(token *jwt.Token) (interface{}, error) {
+		//#固定使用HMAC签名,防止算法混淆攻击
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return KzSecret, nil
 	})
 
@@ -49,12 +51,11 @@ func ParseToken1(tokenString string, tokenSecret string) (*TKzCustomClaims, erro
 
 	if MyClaims != nil {
 		if KzClaims, ok := MyClaims.Claims.(*TKzCustomClaims); ok && MyClaims.Valid {
-			fmt.Println(KzClaims)
 			return KzClaims, nil
 		}
 	}
 
-	return nil, nil
+	return nil, jwt.ErrTokenInvalidClaims
 }
 
 func ParseToken2(tokenString string, tokenSecret string) (TTokenUsr, error) {
@@ -64,6 +65,10 @@ func ParseToken2(tokenString string, tokenSecret string) (TTokenUsr, error) {
 	var KzClaims = TKzCustomClaims{}
 	var TokenUsr = TTokenUsr{}
 	MyClaims, eror := jwt.ParseWithClaims(tokenString, &KzClaims, func(token *jwt.Token) (interface{}, error) {
+		//#固定使用HMAC签名,防止算法混淆攻击
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return KzSecret, nil
 	})
 
@@ -73,7 +78,7 @@ func ParseToken2(tokenString string, tokenSecret string) (TTokenUsr, error) {
 
 	if MyClaims != nil {
 		if KzClaims, ok := MyClaims.Claims.(*TKzCustomClaims); ok && MyClaims.Valid {
-			
+
 			TokenUsr.WhoBuild = KzClaims.WhoBuild
 			TokenUsr.UserRoot = KzClaims.UserRoot
 			TokenUsr.EnrollID = KzClaims.EnrollID
@@ -82,12 +87,11 @@ func ParseToken2(tokenString string, tokenSecret string) (TTokenUsr, error) {
 			TokenUsr.UserName = KzClaims.UserName
 			TokenUsr.UserIndx = KzClaims.UserIndx
 			TokenUsr.DataFrom = KzClaims.DataFrom
-			TokenUsr.CreateAt = KzClaims.CreateAt
 			TokenUsr.SynzFrom = KzClaims.SynzFrom
 
 			return TokenUsr, nil
 		}
 	}
 
-	return TokenUsr, nil
+	return TokenUsr, jwt.ErrTokenInvalidClaims
 }

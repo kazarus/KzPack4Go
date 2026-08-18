@@ -54,8 +54,8 @@ func (this TUniConfig) MarshalJSON() ([]byte, error) {
 
 func (this TUniConfig) Adaptive() error {
 
-	if (this.UnicType != "PostgreSQL") && (this.UnicType != "SQL Server") && (this.UnicType != "Oracle") && (this.UnicType != "MySQL") && (this.UnicType != "dm") && (this.UnicType != "opengauss") && (this.UnicType != "PolorDB") {
-		return errors.New("error: unsupport database; value from config.uni.json->unictype should be 'PostgreSQL' or 'SQL Server' or 'Oracle' or 'MySQL' or 'dm' or 'opengauss' ")
+	if (this.UnicType != "PostgreSQL") && (this.UnicType != "SQL Server") && (this.UnicType != "Oracle") && (this.UnicType != "MySQL") && (this.UnicType != "SQLite") && (this.UnicType != "dm") && (this.UnicType != "opengauss") && (this.UnicType != "PolorDB") {
+		return errors.New("error: unsupport database; value from config.uni.json->unictype should be 'PostgreSQL' or 'SQL Server' or 'Oracle' or 'MySQL' or 'SQLite' or 'dm' or 'opengauss' ")
 	}
 
 	return nil

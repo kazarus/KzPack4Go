@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -32,24 +31,23 @@ type TRangeVal struct {
 	EndedVal float64 `json:"endedVal"`
 }
 
-// 根据不同哈希类型进行哈希：md4、md5、sha1、ripemd160、sha256、sha512
+// 根据不同哈希类型进行哈希：md5、sha1、sha256、sha512
 func ToHash(HashText string, HashType string, isHex bool) string {
 
 	var hashInstance hash.Hash // 定义哈希实例
 
 	switch HashType { // 选择哈希类型
-	case "md4":
-		//hashInstance = md4.New() // "golang.org/x/crypto/md4"
 	case "md5":
 		hashInstance = md5.New()
 	case "sha1":
 		hashInstance = sha1.New()
-	case "ripemd160":
-		//hashInstance = ripemd160.New() // "golang.org/x/crypto/ripemd160"
 	case "sha256":
 		hashInstance = sha256.New()
 	case "sha512":
 		hashInstance = sha512.New()
+	default:
+		// md4、ripemd160 等类型未实现,直接返回错误提示
+		return fmt.Sprintf("unsupported hash type: %s", HashType)
 	}
 	if isHex {
 		arr, _ := hex.DecodeString(HashText) // 十六进制字符串转为十六进制字节数组
@@ -58,9 +56,6 @@ func ToHash(HashText string, HashType string, isHex bool) string {
 		hashInstance.Write([]byte(HashText)) // 将字符串转换为字节数组，写入哈希对象
 	}
 	bytes := hashInstance.Sum(nil) // 哈希值追加到参数后面，只获取原始值，不用追加，用nil，返回哈希值字节数组
-
-	//fmt.Println(base64.StdEncoding.EncodeToString(bytes))
-	//fmt.Println(hex.EncodeToString(bytes))
 
 	return fmt.Sprintf("%x", bytes) // 格式化输出哈希值
 }
@@ -441,14 +436,14 @@ func Contain(a string, list []string) bool {
 func FileExist(FilePath string) (bool, error) {
 
 	_, eror := os.Stat(FilePath)
-	if eror != nil {
-		return false, eror
+	if eror == nil {
+		return true, nil
 	}
 	if os.IsNotExist(eror) {
 		return false, nil
 	}
 
-	return true, nil
+	return false, eror
 }
 
 func IsFile(FilePath string) bool {
@@ -477,7 +472,7 @@ func ToFile(FilePath string, v interface{}) error {
 		return eror
 	}
 
-	eror = ioutil.WriteFile(FilePath, source, CONST_CORE_PATH_TO_文件权限)
+	eror = os.WriteFile(FilePath, source, CONST_CORE_PATH_TO_文件权限)
 	if eror != nil {
 		return eror
 	}
@@ -505,7 +500,7 @@ func InFile(FilePath string, v interface{}) error {
 		return nil
 	}
 
-	source, eror := ioutil.ReadFile(FilePath)
+	source, eror := os.ReadFile(FilePath)
 	if eror != nil {
 		return eror
 	}
