@@ -1,134 +1,332 @@
 package KzPack4Go
 
 import (
-	"crypto/md5"
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io"
+	jsoniter "github.com/json-iterator/go"
 	"log"
-	"strings"
+	"path/filepath"
 
-	"github.com/satori/go.uuid"
+	"github.com/bwmarrin/snowflake"
+	"github.com/idgenerator-go/idgen"
+	"github.com/kardianos/osext"
+	//"github.com/satori/go.uuid"
+	"github.com/gofrs/uuid/v5"
 )
-
-type TEROR struct {
-	ONSTATUS bool
-	ERORCODE string
-	ERORMEMO string
-	DATASIZE int
-	LISTDATA interface{}
-}
 
 var eror error
 
-func (self TEROR) MarshalJSON() ([]byte, error) {
+type TErrorMsg struct {
+	RowIndex int64  `json:"rowIndex"`
+	ErrorKey string `json:"errorKey"`
+	ErrorMsg string `json:"errorMsg"`
+	ErrorCnt int64  `json:"errorCnt"` //#错误次数
+}
 
+func (this TErrorMsg) MarshalJSON() ([]byte, error) {
 	var result = make(map[string]interface{})
 
-	result["ONSTATUS"] = self.ONSTATUS
-	result["ERORCODE"] = KzUnicode(self.ERORCODE)
-	result["ERORMEMO"] = KzUnicode(self.ERORMEMO)
-	result["DATASIZE"] = self.DATASIZE
-	if self.LISTDATA == nil {
-		self.LISTDATA = make([]interface{}, 0)
-	}
-	result["LISTDATA"] = self.LISTDATA
+	result["rowIndex"] = this.RowIndex
+	result["errorKey"] = this.ErrorKey
+	result["errorMsg"] = this.ErrorMsg
+	result["errorCnt"] = this.ErrorCnt
 
+	result["metaData"] = "实体类名: IErrorMsgResponse / eror.TErrorMsg"
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(result)
 }
 
-func ToEROR(aERORMEMO string) TEROR {
+type TEROR struct {
+	OnStatus bool
+	ErorCode string
+	ErorMemo string
+	DataSize int
+	ErrLevel int
+	DataDate int64
+	DataTime float64
 
-	var result TEROR
+	RealPage int64
+	PageSize int64
+	TotalCnt int64
 
-	result.DATASIZE = 0
-	result.ONSTATUS = false
-	result.ERORCODE = "EROR"
-	result.ERORMEMO = aERORMEMO
+	ErrorCnt int64
+	ErrorKey string
+	CryptTxt string
 
-	return result
+	ListData interface{}
 }
 
-func ToMEMO(aERORMEMO string) TEROR {
+func (this TEROR) MarshalJSON() ([]byte, error) {
 
-	var result TEROR
+	var result = make(map[string]interface{})
 
-	result.DATASIZE = 0
-	result.ONSTATUS = false
-	result.ERORCODE = "EROR"
-	result.ERORMEMO = aERORMEMO
+	result["ONSTATUS"] = this.OnStatus
+	result["ERORCODE"] = this.ErorCode
+	result["ERORMEMO"] = this.ErorMemo
+	result["DATASIZE"] = this.DataSize
+	result["ERRLEVEL"] = this.ErrLevel
+	result["DATADATE"] = this.DataDate
+	result["DATATIME"] = this.DataTime
 
-	return result
-}
+	result["REALPAGE"] = this.RealPage
+	result["PAGESIZE"] = this.PageSize
+	result["TOTALCNT"] = this.TotalCnt
 
-func ToDATA(aOnStatus bool, aErorCode string, aErorMemo string, aDataSize int, aListData interface{}) TEROR {
+	result["ERRORCNT"] = this.ErrorCnt
+	result["ERRORKEY"] = this.ErrorKey
+	result["CRYPTTXT"] = this.CryptTxt
 
-	var result TEROR
-
-	result.ONSTATUS = aOnStatus
-	result.ERORCODE = aErorCode
-	result.ERORMEMO = aErorMemo
-	result.DATASIZE = aDataSize
-	result.LISTDATA = aListData
-
-	return result
-}
-
-func ToTRUE(aListData interface{}) TEROR {
-
-	var result TEROR
-
-	result.ONSTATUS = true
-	result.ERORCODE = "TRUE"
-	result.ERORMEMO = "TRUE"
-	result.LISTDATA = aListData
-	result.DATASIZE = 0
-
-	return result
-}
-
-func ToSIZE(aListData interface{}, aDataSize int) TEROR {
-
-	var result TEROR
-
-	result.ONSTATUS = true
-	result.ERORCODE = "TRUE"
-	result.ERORMEMO = "TRUE"
-	result.LISTDATA = aListData
-	result.DATASIZE = aDataSize
-
-	return result
-}
-
-func GetMd5String(s string) string {
-	h := md5.New()
-	h.Write([]byte(s))
-	return hex.EncodeToString(h.Sum(nil))
-}
-
-
-func ToGUID() string {
-	b := make([]byte, 48)
-	if _, err := io.ReadFull(rand.Reader, b); err != nil {
-		return ""
+	if this.ListData == nil {
+		this.ListData = make([]interface{}, 0)
 	}
-	return strings.ToUpper(GetMd5String(base64.URLEncoding.EncodeToString(b)))
+	result["LISTDATA"] = this.ListData
+
+	var json = jsoniter.ConfigCompatibleWithStandardLibrary
+	return json.Marshal(result)
 }
 
+func ToEROR(ErorMemo string) TEROR {
 
+	var result TEROR
+
+	result.DataSize = 0
+	result.OnStatus = false
+	result.ErorCode = "EROR"
+	result.ErorMemo = ErorMemo
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	return result
+}
+
+func ToMEMO(ErorMemo string) TEROR {
+
+	var result TEROR
+
+	result.DataSize = 0
+	result.OnStatus = true
+	result.ErorCode = "TRUE"
+	result.ErorMemo = ErorMemo
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	return result
+}
+
+func ToTRUE(ListData interface{}) TEROR {
+
+	var result TEROR
+
+	result.DataSize = 0
+	result.OnStatus = true
+	result.ErorCode = "TRUE"
+	result.ErorMemo = "TRUE"
+	result.ErrLevel = 0
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	result.ListData = ListData
+
+	return result
+}
+
+func ToSIZE(ListData interface{}, DataSize int) TEROR {
+
+	var result TEROR
+
+	result.OnStatus = true
+	result.ErorCode = "TRUE"
+	result.ErorMemo = "TRUE"
+	result.ErrLevel = 0
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	result.ListData = ListData
+	result.DataSize = DataSize
+
+	return result
+}
+
+func ToPage(ListData interface{}, DataSize int, RealPage int64, PageSize int64, TotalCnt int64) TEROR {
+
+	var result TEROR
+
+	result.OnStatus = true
+	result.ErorCode = "TRUE"
+	result.ErorMemo = "TRUE"
+	result.ErrLevel = 0
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	result.ListData = ListData
+	result.DataSize = DataSize
+
+	result.RealPage = RealPage
+	result.PageSize = PageSize
+	result.TotalCnt = TotalCnt
+
+	return result
+}
+
+// #允许指定所有字段
+func ToDATA(OnStatus bool, ErorCode string, ErorMemo string, DataSize int, ListData interface{}) TEROR {
+
+	var result TEROR
+
+	result.OnStatus = OnStatus
+	result.ErorCode = ErorCode
+	result.ErorMemo = ErorMemo
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	result.DataSize = DataSize
+	result.ListData = ListData
+
+	return result
+}
+
+// #允许指定消息级别,ErrLevel<0时, 不予消息提示
+func ToErrorKey(ErorMemo string, ErrorKey string) TEROR {
+
+	var result TEROR
+
+	result.DataSize = 0
+	result.OnStatus = false
+	result.ErorCode = "EROR"
+	result.ErorMemo = ErorMemo
+	result.ErrLevel = 0
+	result.ErrorKey = ErrorKey
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	return result
+}
+
+// #允许指定消息级别,ErrLevel<0时, 携带出错次数
+func ToErrorCnt(ErorMemo string, ErrorKey string, ErrorCnt int64) TEROR {
+
+	var result TEROR
+
+	result.DataSize = 0
+	result.OnStatus = false
+	result.ErorCode = "EROR"
+	result.ErorMemo = ErorMemo
+	result.ErrLevel = 0
+	result.ErrorKey = ErrorKey
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	return result
+}
+
+// #允许指定消息级别,ErrLevel<0时, 不予消息提示
+func ToErrLevel(ErorMemo string, ErrLevel int, ErrorCnt int64, ErrorKey string) TEROR {
+
+	var result TEROR
+
+	result.DataSize = 0
+	result.OnStatus = false
+	result.ErorCode = "EROR"
+	result.ErorMemo = ErorMemo
+	result.ErrLevel = ErrLevel
+	result.ErrorCnt = ErrorCnt
+	result.ErrorKey = ErrorKey
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	return result
+}
+
+// #允许指定所有字段
+func ToCryptTxt(OnStatus bool, ErorCode string, ErorMemo string, DataSize int, CryptTxt string, ListData interface{}) TEROR {
+
+	var result TEROR
+
+	result.OnStatus = OnStatus
+	result.ErorCode = ErorCode
+	result.ErorMemo = ErorMemo
+
+	result.DataDate = ToDate()
+	result.DataTime = ToTime()
+
+	result.DataSize = DataSize
+	result.ListData = ListData
+	result.CryptTxt = CryptTxt
+
+	return result
+}
+
+// #生成唯一标识,多用于EntityID
 func ToUUID() string {
-	uuid, eror := uuid.NewV4()
-	if eror != nil {
-		fmt.Printf("KzPackGo.ToUUID GET WRONG.%s", eror)
-		return ""
-	}
+
+	/*
+		uuid := uuid.NewV4()
+		return fmt.Sprintf("{%s}", uuid)
+	*/
+
+	uuid, _ := uuid.NewV7()
 	return fmt.Sprintf("{%s}", uuid)
 }
 
+// #生成唯一标识的简写形式,便于对比
+func ToLite(EntityID string) string {
+
+	if EntityID == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s...%s", EntityID[1:5], EntityID[len(EntityID)-5:len(EntityID)-1])
+}
+
+// #生成长度19位 超出 9007199254740992(2的53次方)
+func ToNext19() int64 {
+
+	var Snowflake *snowflake.Node
+	Snowflake, eror = snowflake.NewNode(1)
+	if eror != nil {
+		return 0
+	}
+
+	return Snowflake.Generate().Int64()
+}
+
+// #生成长度16位 未超 9007199254740992(2的53次方)
+func ToNext() int64 {
+
+	var result int64
+	result = idgen.NextId()
+	//if result%2 == 1 {
+	//	result = idgen.NextId()
+	//}
+	//if result%2 == 1 {
+	//	result = idgen.NextId()
+	//}
+
+	return result
+}
+
+func AtRoot() string {
+
+	FilePath, eror := osext.Executable()
+	if eror != nil {
+		return ""
+	}
+
+	FilePath, _ = filepath.Split(FilePath)
+
+	return FilePath
+}
+
 func ChEror(err error, msg string) {
+
 	if err != nil {
 		log.Fatalln(msg, err)
 	}

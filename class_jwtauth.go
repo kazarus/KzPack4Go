@@ -1,35 +1,40 @@
 package KzPack4Go
 
 import "fmt"
-import "github.com/dgrijalva/jwt-go"
+//import "github.com/dgrijalva/jwt-go"
+import "github.com/golang-jwt/jwt/v5"
+
 
 type TKzCustomClaims struct {
-	UserName string  `json:"userName"`
-	EntityID string  `json:"entityID"`
-	WhoBuild int64   `json:"whoBuild"`
-	UserRoot int64   `json:"userRoot"`
-	UserIndx int64   `json:"userIndx"`
-	CreateAt float64 `json:"createAt"`
-	jwt.StandardClaims
+	WhoBuild int64   `json:"whoBuild"` //#租户实例
+	UserRoot int64   `json:"userRoot"` //#租户实例
+	EnrollID string  `json:"enrollID"` //#登录编码
+	UserName string  `json:"userName"` //#用户名称
+	EntityID string  `json:"entityID"` //#用户标识
+	UserIndx int64   `json:"userIndx"` //#用户实例
+	DataFrom int64   `json:"dataFrom"` //#请求终端
+	CreateAt float64 `json:"createAt"` //#生成日期
+	SynzFrom string  `json:"synzFrom"` //#同步方向
+	jwt.RegisteredClaims
 }
 
 type TTokenUsr struct {
-	UserName string  `json:"userName"`
-	EntityID string  `json:"entityID"`
-	WhoBuild int64   `json:"whoBuild"`
-	UserRoot int64   `json:"userRoot"`
-	UserIndx int64   `json:"userIndx"`
-	CreateAt float64 `json:"createAt"`
+	WhoBuild int64   `json:"whoBuild"` //#租户实例
+	UserRoot int64   `json:"userRoot"` //#租户实例
+	EnrollID string  `json:"enrollID"` //#登录编码
+	UserName string  `json:"userName"` //#用户名称
+	EntityID string  `json:"entityID"` //#用户标识
+	UserIndx int64   `json:"userIndx"` //#用户实例
+	DataFrom int64   `json:"dataFrom"` //#请求终端
+	CreateAt float64 `json:"createAt"` //#生成日期
+	SynzFrom string  `json:"synzFrom"` //#同步方向
+
+	Url4Path string `json:"url4Path"` //#请求链接
 }
 
-type TErrorUsr struct {
-	UserCode string
-	ErrorCnt int64
-}
 
-type TBlackList map[string]TErrorUsr
 
-func ParseToken1(tokenString string,tokenSecret string) (*TKzCustomClaims, error) {
+func ParseToken1(tokenString string, tokenSecret string) (*TKzCustomClaims, error) {
 
 	KzSecret := []byte(tokenSecret)
 
@@ -52,7 +57,7 @@ func ParseToken1(tokenString string,tokenSecret string) (*TKzCustomClaims, error
 	return nil, nil
 }
 
-func ParseToken2(tokenString string,tokenSecret string) (TTokenUsr, error) {
+func ParseToken2(tokenString string, tokenSecret string) (TTokenUsr, error) {
 
 	KzSecret := []byte(tokenSecret)
 
@@ -68,14 +73,17 @@ func ParseToken2(tokenString string,tokenSecret string) (TTokenUsr, error) {
 
 	if MyClaims != nil {
 		if KzClaims, ok := MyClaims.Claims.(*TKzCustomClaims); ok && MyClaims.Valid {
-			fmt.Println(KzClaims)
-
+			
+			TokenUsr.WhoBuild = KzClaims.WhoBuild
+			TokenUsr.UserRoot = KzClaims.UserRoot
+			TokenUsr.EnrollID = KzClaims.EnrollID
 			TokenUsr.EntityID = KzClaims.EntityID
 			TokenUsr.CreateAt = KzClaims.CreateAt
 			TokenUsr.UserName = KzClaims.UserName
-			TokenUsr.WhoBuild = KzClaims.WhoBuild
-			TokenUsr.UserRoot = KzClaims.UserRoot
 			TokenUsr.UserIndx = KzClaims.UserIndx
+			TokenUsr.DataFrom = KzClaims.DataFrom
+			TokenUsr.CreateAt = KzClaims.CreateAt
+			TokenUsr.SynzFrom = KzClaims.SynzFrom
 
 			return TokenUsr, nil
 		}
