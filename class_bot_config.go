@@ -7,14 +7,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/tidwall/gjson"
-	"gopkg.in/resty.v1"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/go-resty/resty"
+	"github.com/tidwall/gjson"
 )
 
 // #错误消息
@@ -142,13 +143,10 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 							if eror != nil {
 								return
 							}
-							//@fmt.Println(string(resp.Body()))
 
 							JsonText := resp.String()
 							OnStatus := gjson.Get(JsonText, "ONSTATUS").Bool()
-							//@ErorMemo := gjson.Get(JsonText, "ERORMEMO").String()
 							if OnStatus {
-								//@JsonText = gjson.Get(resp.String(), "LISTDATA").String()
 								SysStatus.RqStream = gjson.Get(JsonText, "LISTDATA.0.sysPathc").Int() //#取出附件标识
 							}
 						}
@@ -199,37 +197,3 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 		}
 	}
 }
-
-//#暂不启用
-/*
-func (this TBotConfig) ToErrorLog(ErrorMsg string, LoggerFx *logrus.Logger) {
-
-	TimeUnix := time.Now().UnixMilli()
-
-	SignText := fmt.Sprintf("%d\n%s", TimeUnix, this.SecretID)
-
-	Hash := hmac.New(sha256.New, []byte(this.SecretID))
-	Hash.Write([]byte(SignText))
-	ByteData := Hash.Sum(nil)
-	SignData := url.QueryEscape(base64.StdEncoding.EncodeToString(ByteData))
-
-	sRequest := fmt.Sprintf("%s?access_token=%s&timestamp=%d&sign=%s", this.EndPoint, this.AccessID, TimeUnix, SignData)
-
-	client := http.Client{}
-
-	requestBody := strings.NewReader(ErrorMsg)
-	response, err := client.Post(sRequest, "application/json", requestBody)
-	if err != nil {
-		LoggerFx.Error(err.Error())
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode == http.StatusOK {
-		_, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			LoggerFx.Error(err.Error())
-		}
-		//#fmt.Println(string(body))
-	}
-}
-*/

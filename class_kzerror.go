@@ -1,17 +1,7 @@
 package KzPack4Go
 
 import (
-	"fmt"
 	jsoniter "github.com/json-iterator/go"
-	"log"
-	"os"
-	"path/filepath"
-	"sync"
-
-	"github.com/bwmarrin/snowflake"
-	"github.com/yitter/idgenerator-go/idgen"
-	//"github.com/satori/go.uuid"
-	"github.com/gofrs/uuid/v5"
 )
 
 type TErrorMsg struct {
@@ -265,79 +255,3 @@ func ToCryptTxt(OnStatus bool, ErorCode string, ErorMemo string, DataSize int, C
 	return result
 }
 
-// #生成唯一标识,多用于EntityID
-func ToUUID() string {
-
-	/*
-		uuid := uuid.NewV4()
-		return fmt.Sprintf("{%s}", uuid)
-	*/
-
-	uuid, _ := uuid.NewV7()
-	return fmt.Sprintf("{%s}", uuid)
-}
-
-// #生成唯一标识的简写形式,便于对比
-func ToLite(EntityID string) string {
-
-	if EntityID == "" {
-		return ""
-	}
-	if len(EntityID) < 6 {
-		return EntityID
-	}
-	return fmt.Sprintf("%s...%s", EntityID[1:5], EntityID[len(EntityID)-5:len(EntityID)-1])
-}
-
-var (
-	snowflakeOnce sync.Once
-	snowflakeNode *snowflake.Node
-	snowflakeEror error
-)
-
-// #生成长度19位 超出 9007199254740992(2的53次方)
-func ToNext19() int64 {
-
-	snowflakeOnce.Do(func() {
-		snowflakeNode, snowflakeEror = snowflake.NewNode(1)
-	})
-	if snowflakeEror != nil {
-		return 0
-	}
-
-	return snowflakeNode.Generate().Int64()
-}
-
-// #生成长度16位 未超 9007199254740992(2的53次方)
-func ToNext() int64 {
-
-	var result int64
-	result = idgen.NextId()
-	//if result%2 == 1 {
-	//	result = idgen.NextId()
-	//}
-	//if result%2 == 1 {
-	//	result = idgen.NextId()
-	//}
-
-	return result
-}
-
-func AtRoot() string {
-
-	FilePath, eror := os.Executable()
-	if eror != nil {
-		return ""
-	}
-
-	FilePath, _ = filepath.Split(FilePath)
-
-	return FilePath
-}
-
-func ChEror(err error, msg string) {
-
-	if err != nil {
-		log.Fatalln(msg, err)
-	}
-}
