@@ -76,7 +76,6 @@ func (this TRedis4Go) Ping(ctx context.Context) *redis.StatusCmd {
 	return nil
 }
 
-// Close 释放底层连接池
 func (this TRedis4Go) Close() error {
 
 	switch this.RedisTyp {
@@ -123,6 +122,22 @@ func (this TRedis4Go) Set(ctx context.Context, key string, value interface{}, ex
 	case 2:
 		{
 			return this.Client2.Set(ctx, key, value, expiration)
+		}
+	}
+
+	return nil
+}
+
+func (this TRedis4Go) Keys(ctx context.Context, pattern string) *redis.StringSliceCmd {
+
+	switch this.RedisTyp {
+	case 0, 1:
+		{
+			return this.Client1.Keys(ctx, pattern)
+		}
+	case 2:
+		{
+			return this.Client2.Keys(ctx, pattern)
 		}
 	}
 
