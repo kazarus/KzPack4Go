@@ -118,3 +118,17 @@ func TestFormatFloat(t *testing.T) {
 		t.Errorf("FormatFloat(1.234567, -1) = %v", got)
 	}
 }
+
+// NewIdGenerator 的 WorkerID 参数必须生效(修复前被无条件覆盖为3)
+// 默认位布局:ID = 时间戳<<12 | WorkerId<<6 | 序列号,故 worker 位段 = (id>>6)&0x3F
+func TestNewIdGenerator(t *testing.T) {
+	NewIdGenerator(5)
+
+	id := ToNext()
+	if id == 0 {
+		t.Fatal("ToNext() = 0")
+	}
+	if got := (id >> 6) & 0x3F; got != 5 {
+		t.Errorf("生成ID中的WorkerId = %d; want 5(参数应生效)", got)
+	}
+}

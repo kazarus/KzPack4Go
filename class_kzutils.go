@@ -9,13 +9,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"hash"
-	"strconv"
-	"strings"
-	"time"
-	"sync"
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 import (
@@ -275,15 +275,7 @@ func StrToFloat(Value string) float64 {
 	return result
 }
 
-func Float2Text(Value float64) string {
-
-	result := fmt.Sprintf("%.4f", Value)
-	return result
-}
-
-/*
-字符串后面没有零
-*/
+// #字符串后面没有零
 func Float0Text(Value float64) string {
 
 	var NoNumber string
@@ -296,6 +288,12 @@ func Float0Text(Value float64) string {
 	}
 
 	return NoNumber
+}
+
+func Float2Text(Value float64) string {
+
+	result := fmt.Sprintf("%.4f", Value)
+	return result
 }
 
 func FormatFloat(Value float64, Precision int) float64 {
@@ -435,6 +433,21 @@ func Contain(a string, list []string) bool {
 	return false
 }
 
+func Contains(AllString string, SubString string) bool {
+
+	var ListText = make([]string, 0)
+	ListText = strings.Split(AllString, ",")
+
+	for _, ItemText := range ListText {
+
+		if ItemText == SubString {
+			return true
+		}
+	}
+
+	return false
+}
+
 func FileExist(FilePath string) (bool, error) {
 
 	_, eror := os.Stat(FilePath)
@@ -532,21 +545,6 @@ func FormatFileSize(FileSize int64) (size string) {
 	}
 }
 
-func Contains(AllString string, SubString string) bool {
-
-	var ListText = make([]string, 0)
-	ListText = strings.Split(AllString, ",")
-
-	for _, ItemText := range ListText {
-
-		if ItemText == SubString {
-			return true
-		}
-	}
-
-	return false
-}
-
 // #生成唯一标识,多用于EntityID
 func ToUUID() string {
 
@@ -595,12 +593,6 @@ func ToNext() int64 {
 
 	var result int64
 	result = idgen.NextId()
-	//if result%2 == 1 {
-	//	result = idgen.NextId()
-	//}
-	//if result%2 == 1 {
-	//	result = idgen.NextId()
-	//}
 
 	return result
 }
@@ -622,4 +614,11 @@ func ChEror(err error, msg string) {
 	if err != nil {
 		log.Fatalln(msg, err)
 	}
+}
+
+// #初始化ID生成器;WorkerID须在[0,63]区间(默认WorkerIdBitLength=6)
+func NewIdGenerator(WorkerID int64) {
+
+	var options = idgen.NewIdGeneratorOptions(uint16(WorkerID))
+	idgen.SetIdGenerator(options)
 }

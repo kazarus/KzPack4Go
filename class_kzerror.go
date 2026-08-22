@@ -1,7 +1,7 @@
 package KzPack4Go
 
 import (
-	jsoniter "github.com/json-iterator/go"
+	"encoding/json"
 )
 
 type TErrorMsg struct {
@@ -21,7 +21,6 @@ func (this TErrorMsg) MarshalJSON() ([]byte, error) {
 
 	result["metaData"] = "实体类名: IErrorMsgResponse / eror.TErrorMsg"
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(result)
 }
 
@@ -70,7 +69,6 @@ func (this TEROR) MarshalJSON() ([]byte, error) {
 	}
 	result["LISTDATA"] = this.ListData
 
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(result)
 }
 
@@ -254,4 +252,3 @@ func ToCryptTxt(OnStatus bool, ErorCode string, ErorMemo string, DataSize int, C
 
 	return result
 }
-

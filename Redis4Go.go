@@ -55,6 +55,11 @@ func NewClient(RedisTyp int64, RedisSrv string, RedisUsr string, RedisPwd string
 
 			Redis4Go.Client2 = redis.NewClusterClient(options)
 		}
+	default:
+		{
+			//#非法类型立即失败,避免后续命令方法返回nil引发远程panic
+			panic(fmt.Sprintf("Redis4Go: 非法的RedisTyp=%d; 有效值{0,1:单机;2:集群}", RedisTyp))
+		}
 	}
 
 	return &Redis4Go
