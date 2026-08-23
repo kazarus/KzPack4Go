@@ -40,14 +40,17 @@ import "github.com/kazarus/KzPack4Go"
 ### 1. Redis 客户端
 
 ```go
-// 单机(Redis 6.0+ ACL 场景可传用户名,空串兼容老版本)
-r := KzPack4Go.NewClient(0, "127.0.0.1:6379", "redis-user", "password")
+// 推荐:NewClientWithOptions,零值字段使用新默认(单机 DB 0 / 读写超时 3s)
+r := KzPack4Go.NewClientWithOptions(0, "127.0.0.1:6379", "", "password", KzPack4Go.TRedisOptions{})
 defer r.Close()
 
-// 集群(地址逗号分隔)
-rc := KzPack4Go.NewClient(2, "node1:6379,node2:6379,node3:6379", "", "password")
+// 旧接口 NewClient 保留旧默认(单机 DB 11 / 读写超时 1000s),仅用于兼容历史调用点
+// r := KzPack4Go.NewClient(0, "127.0.0.1:6379", "redis-user", "password")
 
-// 自定义单机库号与读写超时(零值字段沿用默认:库 11 / 超时 1000s)
+// 集群(地址逗号分隔)
+rc := KzPack4Go.NewClientWithOptions(2, "node1:6379,node2:6379,node3:6379", "", "password", KzPack4Go.TRedisOptions{})
+
+// 自定义单机库号与读写超时
 ro := KzPack4Go.NewClientWithOptions(0, "127.0.0.1:6379", "", "password", KzPack4Go.TRedisOptions{DB: 5, ReadTimeout: 3 * time.Second, WriteTimeout: 3 * time.Second})
 
 ctx := context.Background()
@@ -56,9 +59,9 @@ val, _ := r.Get(ctx, "key").Result()
 keys := r.Keys(ctx, "user:*").Val() // 模式匹配
 ```
 
-> `RedisTyp`: `0` / `1` 为单机模式,`2` 为集群模式;**其它值会在 `NewClient` 构造期直接 panic(快速失败)**,避免命令方法返回 nil 后引发远程 panic。
+> `RedisTyp`: `0` / `1` 为单机模式,`2` 为集群模式;**其它值会在构造期直接 panic(快速失败)**,避免命令方法返回 nil 后引发远程 panic。
 >
-> 单机模式默认写入 `DB 11`、读写超时 `1000s`(旧默认),需要自定义库号/超时请用 `NewClientWithOptions`(零值字段仍沿用旧默认)。
+> 默认值分两套:`NewClientWithOptions` 零值字段使用新默认(单机 DB 0、读写超时 3s),**推荐新代码使用**;`NewClient`(已标 Deprecated)保留旧默认(单机 DB 11、读写超时 1000s)以兼容历史调用点,需要旧行为也可通过 `TRedisOptions{DB: 11, ReadTimeout: 1000 * time.Second, WriteTimeout: 1000 * time.Second}` 显式指定。
 
 ### 2. JWT 令牌解析
 
@@ -216,5 +219,5 @@ bl2.Append("u002", KzPack4Go.TErrorUsr{UserCode: "u002", ErrorCnt: 3})
 - `ToHash` 仅支持 `md5` / `sha1` / `sha256` / `sha512`,其它类型与非法 hex 输入返回空串与错误。
 - `SM4` 加解密密钥须为 16 字节(Base64 编码);`AES` 密钥长度须符合 AES 规范(16/24/32 字节)。
 - `YzCrypt.AES` 密文为 `随机IV(16B)||密文` 格式;旧接口 `EncryptAES`/`DecryptAES`/`Simply*` 为旧格式(固定 IV=密钥前 16 字节),仅用于兼容历史数据,新数据请使用 `YzCrypt.AES`,两种格式不互通。
-- `NewClient` 对非法 `RedisTyp` 构造期快速失败(panic);单机模式默认写入 `DB 11`、读写超时 `1000s`(旧默认,可用 `NewClientWithOptions` 覆盖)。
+- `NewClient` 对非法 `RedisTyp` 构造期快速失败(panic)。默认值:`NewClientWithOptions` 零值字段使用新默认(单机 DB 0、读写超时 3s);`NewClient`(Deprecated)保留旧默认(单机 DB 11、读写超时 1000s)兼容历史调用点,新代码请勿依赖。
 - 依赖第三方库:`github.com/redis/go-redis/v9`、`github.com/golang-jwt/jwt/v5`、`github.com/tjfoc/gmsm`、`github.com/sirupsen/logrus`、`github.com/go-resty/resty/v2`、`github.com/yitter/idgenerator-go`、`github.com/gofrs/uuid/v5` 等。

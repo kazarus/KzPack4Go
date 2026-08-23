@@ -14,39 +14,44 @@ type TRedis4Go struct {
 	Client2  *redis.ClusterClient
 }
 
-// TRedisOptions Redis 客户端可选参数;零值沿用 NewClient 的旧默认值
-// (单机 DB=11,读写超时 1000s)。如确需使用库 0,可在构造后通过
-// Client1.Options().DB 直接调整。
+// TRedisOptions Redis 客户端可选参数;零值字段使用新默认值
+// (单机 DB=0,读写超时 3s)。如需旧行为(DB=11,读写 1000s)请显式传参
+// 或继续使用 NewClient。
 type TRedisOptions struct {
-	DB           int           // #单机库号;<=0 时使用默认 11
-	ReadTimeout  time.Duration // #读超时;<=0 时使用默认 1000s
-	WriteTimeout time.Duration // #写超时;<=0 时使用默认 1000s
+	DB           int           // #单机库号;零值即 DB 0
+	ReadTimeout  time.Duration // #读超时;<=0 时使用默认 3s
+	WriteTimeout time.Duration // #写超时;<=0 时使用默认 3s
 }
 
+// NewClient 保留旧默认值(单机 DB=11,读写超时 1000s)以兼容历史调用点。
+//
+// Deprecated: 旧默认值反直觉,新代码请使用 NewClientWithOptions
+// (零值字段使用新默认:DB 0、读写超时 3s)。
 func NewClient(RedisTyp int64, RedisSrv string, RedisUsr string, RedisPwd string) *TRedis4Go {
 
-	return NewClientWithOptions(RedisTyp, RedisSrv, RedisUsr, RedisPwd, TRedisOptions{})
+	return NewClientWithOptions(RedisTyp, RedisSrv, RedisUsr, RedisPwd,
+		TRedisOptions{DB: 11, ReadTimeout: 1000 * time.Second, WriteTimeout: 1000 * time.Second})
 }
 
-// NewClientWithOptions 与 NewClient 相同,但允许自定义单机库号与读写超时;
-// 零值字段回退到旧默认值,保证与 NewClient 行为一致。
+// NewClientWithOptions 构造 Redis 客户端,允许自定义单机库号与读写超时;
+// 零值字段使用新默认值(DB 0,读写超时 3s)。
 func NewClientWithOptions(RedisTyp int64, RedisSrv string, RedisUsr string, RedisPwd string, Options TRedisOptions) *TRedis4Go {
 
 	var Redis4Go = TRedis4Go{}
 	Redis4Go.RedisTyp = RedisTyp
 
-	// #零值回退到旧默认值(与 NewClient 一致)
+	// #零值回退到新默认值
 	db := Options.DB
-	if db <= 0 {
-		db = 11
+	if db < 0 {
+		db = 0
 	}
 	readTimeout := Options.ReadTimeout
 	if readTimeout <= 0 {
-		readTimeout = 1000 * time.Second
+		readTimeout = 3 * time.Second
 	}
 	writeTimeout := Options.WriteTimeout
 	if writeTimeout <= 0 {
-		writeTimeout = 1000 * time.Second
+		writeTimeout = 3 * time.Second
 	}
 
 	switch RedisTyp {

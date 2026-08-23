@@ -273,9 +273,7 @@ func Float0Text(Value float64) string {
 	for strings.HasSuffix(NoNumber, "0") {
 		NoNumber = strings.TrimSuffix(NoNumber, "0")
 	}
-	if strings.HasSuffix(NoNumber, ".") {
-		NoNumber = strings.TrimSuffix(NoNumber, ".")
-	}
+	NoNumber = strings.TrimSuffix(NoNumber, ".")
 
 	return NoNumber
 }
@@ -323,47 +321,35 @@ func AnyToVal(value interface{}) string {
 		return key
 	}
 
-	switch value.(type) {
+	switch v := value.(type) {
 	case float64:
-		ft := value.(float64)
-		key = strconv.FormatFloat(ft, 'f', -1, 64)
+		key = strconv.FormatFloat(v, 'f', -1, 64)
 	case float32:
-		ft := value.(float32)
-		key = strconv.FormatFloat(float64(ft), 'f', -1, 64)
+		key = strconv.FormatFloat(float64(v), 'f', -1, 64)
 	case int:
-		it := value.(int)
-		key = strconv.Itoa(it)
+		key = strconv.Itoa(v)
 	case uint:
-		it := value.(uint)
-		key = strconv.Itoa(int(it))
+		key = strconv.Itoa(int(v))
 	case int8:
-		it := value.(int8)
-		key = strconv.Itoa(int(it))
+		key = strconv.Itoa(int(v))
 	case uint8:
-		it := value.(uint8)
-		key = strconv.Itoa(int(it))
+		key = strconv.Itoa(int(v))
 	case int16:
-		it := value.(int16)
-		key = strconv.Itoa(int(it))
+		key = strconv.Itoa(int(v))
 	case uint16:
-		it := value.(uint16)
-		key = strconv.Itoa(int(it))
+		key = strconv.Itoa(int(v))
 	case int32:
-		it := value.(int32)
-		key = strconv.Itoa(int(it))
+		key = strconv.Itoa(int(v))
 	case uint32:
-		it := value.(uint32)
-		key = strconv.Itoa(int(it))
+		key = strconv.Itoa(int(v))
 	case int64:
-		it := value.(int64)
-		key = strconv.FormatInt(it, 10)
+		key = strconv.FormatInt(v, 10)
 	case uint64:
-		it := value.(uint64)
-		key = strconv.FormatUint(it, 10)
+		key = strconv.FormatUint(v, 10)
 	case string:
-		key = value.(string)
+		key = v
 	case []byte:
-		key = string(value.([]byte))
+		key = string(v)
 	default:
 		newValue, _ := json.Marshal(value)
 		key = string(newValue)
@@ -566,11 +552,7 @@ func ToLite(EntityID string) string {
 
 // #生成长度16位 未超 9007199254740992(2的53次方)
 func ToNext() int64 {
-
-	var result int64
-	result = idgen.NextId()
-
-	return result
+	return idgen.NextId()
 }
 
 // #应用所在目录

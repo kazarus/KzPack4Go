@@ -76,9 +76,9 @@ func (this TUniConfig) UrlBuild() string {
 		}
 	case "Oracle":
 		{
-			this.DataBase = IfThenS(this.DataBase == "", "orcl", this.DataBase)
-			this.Instance = this.DataBase
-			DbSource = fmt.Sprintf("%s/%s@%s:%s/%s", this.UnicUser, this.UnicPswd, this.UnicSrvr, this.UnicPort, this.DataBase)
+			//#值接收者,对 this 的赋值不回写调用方,此处仅局部生效
+			DataBase := IfThenS(this.DataBase == "", "orcl", this.DataBase)
+			DbSource = fmt.Sprintf("%s/%s@%s:%s/%s", this.UnicUser, this.UnicPswd, this.UnicSrvr, this.UnicPort, DataBase)
 		}
 	case "dm":
 		{
@@ -93,7 +93,7 @@ func (this TUniConfig) UrlBuild() string {
 		}
 	case "SQLite":
 		{
-			DbSource = fmt.Sprintf("%s", this.DataBase)
+			DbSource = this.DataBase
 		}
 	case "opengauss":
 		{

@@ -56,7 +56,7 @@ func TestNewClientUnknownType(t *testing.T) {
 	NewClient(9, "127.0.0.1:6379", "", "")
 }
 
-// NewClientWithOptions 应透传自定义库号与读写超时;零值字段回退旧默认值(与 NewClient 一致)
+// NewClientWithOptions 应透传自定义库号与读写超时;NewClient 保留旧默认,DB 负值归一为 0
 func TestNewClientWithOptions(t *testing.T) {
 	r := NewClientWithOptions(0, "127.0.0.1:6379", "", "", TRedisOptions{DB: 5, ReadTimeout: 2 * time.Second, WriteTimeout: 3 * time.Second})
 	if r.Client1 == nil {
@@ -73,17 +73,30 @@ func TestNewClientWithOptions(t *testing.T) {
 		t.Errorf("WriteTimeout = %v; want 3s", opts.WriteTimeout)
 	}
 
-	// 零值回退旧默认(单机 DB=11,读写超时 1000s)
+	// NewClientWithOptions 零值字段使用新默认(DB 0,读写超时 3s)
 	r2 := NewClientWithOptions(0, "127.0.0.1:6379", "", "", TRedisOptions{})
 	opts2 := r2.Client1.Options()
-	if opts2.DB != 11 {
-		t.Errorf("零值 DB = %d; want 11", opts2.DB)
+	if opts2.DB != 0 {
+		t.Errorf("零值 DB = %d; want 0", opts2.DB)
 	}
-	if opts2.ReadTimeout != 1000*time.Second {
-		t.Errorf("零值 ReadTimeout = %v; want 1000s", opts2.ReadTimeout)
+	if opts2.ReadTimeout != 3*time.Second {
+		t.Errorf("零值 ReadTimeout = %v; want 3s", opts2.ReadTimeout)
 	}
-	if opts2.WriteTimeout != 1000*time.Second {
-		t.Errorf("零值 WriteTimeout = %v; want 1000s", opts2.WriteTimeout)
+	if opts2.WriteTimeout != 3*time.Second {
+		t.Errorf("零值 WriteTimeout = %v; want 3s", opts2.WriteTimeout)
+	}
+
+	// NewClient 保留旧默认(DB 11,读写超时 1000s)以兼容历史调用点
+	r3 := NewClient(0, "127.0.0.1:6379", "", "")
+	opts3 := r3.Client1.Options()
+	if opts3.DB != 11 {
+		t.Errorf("NewClient DB = %d; want 11", opts3.DB)
+	}
+	if opts3.ReadTimeout != 1000*time.Second {
+		t.Errorf("NewClient ReadTimeout = %v; want 1000s", opts3.ReadTimeout)
+	}
+	if opts3.WriteTimeout != 1000*time.Second {
+		t.Errorf("NewClient WriteTimeout = %v; want 1000s", opts3.WriteTimeout)
 	}
 }
 
