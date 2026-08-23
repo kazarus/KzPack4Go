@@ -11,14 +11,6 @@ import (
 	"time"
 )
 
-// #请求终端
-const CONST_DATA_FROM_TO_桌面 = 0 //#桌面
-const CONST_DATA_FROM_TO_钉钉 = 1 //#钉钉
-const CONST_DATA_FROM_TO_微信 = 2 //#微信
-const CONST_DATA_FROM_TO_安卓 = 3 //#安卓
-const CONST_DATA_FROM_T0_苹果 = 4 //#苹果
-const CONST_DATA_FROM_TO_苹果 = 4 //#苹果(修正拼写,与T0别名等价)
-
 type TSYSSTATUS struct {
 	WhoBuild int64   `db:"who_build" json:"whoBuild"`
 	UserIndx int64   `db:"user_indx" json:"userIndx"`
@@ -122,6 +114,8 @@ func (this TSYSSTATUS) MarshalJSON() ([]byte, error) {
 	result["errLevel"] = this.ErrLevel
 	result["errorMsg"] = this.ErrorMsg
 	result["returnID"] = this.ReturnID
+	result["browerOS"] = this.BrowerOS
+	result["browerID"] = this.BrowerID
 	result["diskPath"] = this.DiskPath
 	result["path4URL"] = this.Path4URL
 	result["dataBase"] = this.DataBase
@@ -141,6 +135,8 @@ func (this TSYSSTATUS) MarshalJSON() ([]byte, error) {
 	result["fromText"] = this.FromText
 	result["msgTitle"] = this.MsgTitle
 	result["msgState"] = this.MsgState
+
+	result["metaData"] = "实体类名: core.TSysStatus"
 
 	return json.Marshal(result)
 }
@@ -175,19 +171,19 @@ func (this *TSYSSTATUS) InTokenUsr(TokenUsr TTokenUsr) {
 	this.DataFrom = TokenUsr.DataFrom
 }
 
-func (this TSYSSTATUS) ToMarkDown0(aMsgTitle string, aMsgState string) string {
+func (this TSYSSTATUS) ToMarkDown0(msgTitle string, msgState string) string {
 
 	r := make(map[string]interface{})
 	r["msgtype"] = "markdown"
 	r["markdown"] = map[string]string{
 		"title": "日志提醒",
 		"text": fmt.Sprintf("#### %s\n > 服务名称: %s\n\n > 后端端口: %s\n\n > 前端端口: %s\n\n > 数据链接: %s\n\n > 日志提醒: %s;\n\n",
-			aMsgTitle,
+			msgTitle,
 			this.Name4App,
 			this.HttpPort,
 			this.FrontEnd,
 			this.DataBase,
-			aMsgState,
+			msgState,
 		),
 	}
 
@@ -302,7 +298,7 @@ func (this *TSYSSTATUS) ToErrorLog(TokenUsr TTokenUsr, SrvConfig TSrvConfig, Bot
 		{
 			this.FromText = "安卓终端"
 		}
-	case CONST_DATA_FROM_T0_苹果:
+	case CONST_DATA_FROM_TO_苹果:
 		{
 			this.FromText = "苹果终端"
 		}

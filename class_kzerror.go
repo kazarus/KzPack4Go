@@ -44,6 +44,7 @@ type TEROR struct {
 	ListData interface{}
 }
 
+// #历史遗留,后端返回全部大写
 func (this TEROR) MarshalJSON() ([]byte, error) {
 
 	var result = make(map[string]interface{})

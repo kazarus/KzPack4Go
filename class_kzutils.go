@@ -14,15 +14,10 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
-)
 
-import (
-	"github.com/bwmarrin/snowflake"
-	"github.com/yitter/idgenerator-go/idgen"
-	//"github.com/satori/go.uuid"
 	"github.com/gofrs/uuid/v5"
+	"github.com/yitter/idgenerator-go/idgen"
 )
 
 const CONST_CORE_PATH_TO_目录权限 = 0750
@@ -41,8 +36,26 @@ type TRangeVal struct {
 	EndedVal float64 `json:"endedVal"`
 }
 
-// 根据不同哈希类型进行哈希：md5、sha1、sha256、sha512
-func ToHash(HashText string, HashType string, isHex bool) string {
+func Min(x, y int64) int64 {
+
+	if x < y {
+		return x
+	}
+
+	return y
+}
+
+func Max(x, y int64) int64 {
+
+	if x > y {
+		return x
+	}
+
+	return y
+}
+
+// 根据不同哈希类型进行哈希:md5、sha1、sha256、sha512
+func ToHash(HashText string, HashType string, isHex bool) (string, error) {
 
 	var hashInstance hash.Hash // 定义哈希实例
 
@@ -56,18 +69,21 @@ func ToHash(HashText string, HashType string, isHex bool) string {
 	case "sha512":
 		hashInstance = sha512.New()
 	default:
-		// md4、ripemd160 等类型未实现,直接返回错误提示
-		return fmt.Sprintf("unsupported hash type: %s", HashType)
+		// md4、ripemd160 等类型未实现,返回错误
+		return "", fmt.Errorf("unsupported hash type: %s", HashType)
 	}
 	if isHex {
-		arr, _ := hex.DecodeString(HashText) // 十六进制字符串转为十六进制字节数组
-		hashInstance.Write(arr)              // 写入哈希实例对象
+		arr, eror := hex.DecodeString(HashText) // 十六进制字符串转为十六进制字节数组
+		if eror != nil {
+			return "", fmt.Errorf("hex decode error: %v", eror)
+		}
+		hashInstance.Write(arr) // 写入哈希实例对象
 	} else {
 		hashInstance.Write([]byte(HashText)) // 将字符串转换为字节数组，写入哈希对象
 	}
 	bytes := hashInstance.Sum(nil) // 哈希值追加到参数后面，只获取原始值，不用追加，用nil，返回哈希值字节数组
 
-	return fmt.Sprintf("%x", bytes) // 格式化输出哈希值
+	return fmt.Sprintf("%x", bytes), nil // 格式化输出哈希值
 }
 
 func ToMsec() float64 {
@@ -119,13 +135,13 @@ func ToCron(Expire int) string {
 	return result
 }
 
-func NextKJQJ(aValue int64) int64 {
+func NextKJQJ(Value int64) int64 {
 
 	var KJND int64
 	var KJQJ int64
 
-	KJND = int64(aValue) / 100
-	KJQJ = int64(aValue) % 100
+	KJND = int64(Value) / 100
+	KJQJ = int64(Value) % 100
 	KJQJ = KJQJ + 1
 
 	if KJQJ == 13 {
@@ -136,9 +152,9 @@ func NextKJQJ(aValue int64) int64 {
 	return KJND*100 + KJQJ
 }
 
-func SubStr(str string, start int, ended int) string {
+func SubStr(value string, start int, ended int) string {
 
-	rs := []rune(str)
+	rs := []rune(value)
 	length := len(rs)
 
 	if start < 0 || start > length {
@@ -148,18 +164,23 @@ func SubStr(str string, start int, ended int) string {
 	if ended < 0 || ended > length {
 		return ""
 	}
+
+	// #ended 小于 start 时,直接切片会触发 slice bounds out of range panic,提前拦截
+	if ended < start {
+		return ""
+	}
 	return string(rs[start:ended])
 }
 
-func TimePlus(aStartDay int) float64 {
+func TimePlus(StartDay int) float64 {
 
-	result, _ := strconv.ParseFloat(time.Now().AddDate(0, 0, aStartDay).Format("20060102150405"), 64)
+	result, _ := strconv.ParseFloat(time.Now().AddDate(0, 0, StartDay).Format("20060102150405"), 64)
 	return result
 }
 
-func DatePlus(aStartDay int) int64 {
+func DatePlus(StartDay int) int64 {
 
-	result, _ := strconv.ParseInt(time.Now().AddDate(0, 0, aStartDay).Format("20060102"), 10, 64)
+	result, _ := strconv.ParseInt(time.Now().AddDate(0, 0, StartDay).Format("20060102"), 10, 64)
 	return result
 }
 
@@ -196,19 +217,6 @@ func DateToStr(Value int64) string {
 	return fmt.Sprintf("%s-%s-%s", a, b, c)
 }
 
-func StrToDate(Value [][]string) int64 {
-
-	if len(Value) != 3 {
-		return 0
-	}
-
-	a := StrToInt(Value[0][0])
-	b := StrToInt(Value[1][0])
-	c := StrToInt(Value[2][0])
-
-	return a*10000 + b*100 + c
-}
-
 func Format1Time(Value string) string {
 	//#20200618 -> 2020-06-18 00:00:00
 	result := Value
@@ -237,24 +245,6 @@ func Format2Time(Value string) string {
 	c := result[6:8]
 
 	return fmt.Sprintf("%s-%s-%s 23:59:59", a, b, c)
-}
-
-func Min(x, y int64) int64 {
-
-	if x < y {
-		return x
-	}
-
-	return y
-}
-
-func Max(x, y int64) int64 {
-
-	if x > y {
-		return x
-	}
-
-	return y
 }
 
 func StrToInt(Value string) int64 {
@@ -422,10 +412,10 @@ func IfThenB(Value bool, TrueVal, FailVal bool) bool {
 	return Result
 }
 
-func Contain(a string, list []string) bool {
+func Contain(Val string, list []string) bool {
 
-	for _, b := range list {
-		if b == a {
+	for _, One := range list {
+		if One == Val {
 			return true
 		}
 	}
@@ -448,19 +438,7 @@ func Contains(AllString string, SubString string) bool {
 	return false
 }
 
-func FileExist(FilePath string) (bool, error) {
-
-	_, eror := os.Stat(FilePath)
-	if eror == nil {
-		return true, nil
-	}
-	if os.IsNotExist(eror) {
-		return false, nil
-	}
-
-	return false, eror
-}
-
+// #判断是否文件
 func IsFile(FilePath string) bool {
 
 	fi, e := os.Stat(FilePath)
@@ -471,6 +449,7 @@ func IsFile(FilePath string) bool {
 	return !fi.IsDir()
 }
 
+// #配置存档
 func ToFile(FilePath string, v interface{}) error {
 
 	var eror error
@@ -495,6 +474,7 @@ func ToFile(FilePath string, v interface{}) error {
 	return nil
 }
 
+// #从文件初始化配置
 func InFile(FilePath string, v interface{}) error {
 
 	var eror error
@@ -528,6 +508,21 @@ func InFile(FilePath string, v interface{}) error {
 	return nil
 }
 
+// #判断文件存在
+func FileExist(FilePath string) (bool, error) {
+
+	_, eror := os.Stat(FilePath)
+	if eror == nil {
+		return true, nil
+	}
+	if os.IsNotExist(eror) {
+		return false, nil
+	}
+
+	return false, eror
+}
+
+// #格式化文件大小,更加易读
 func FormatFileSize(FileSize int64) (size string) {
 	if FileSize < 1024 {
 		//return strconv.FormatInt(fileSize, 10) + "B"
@@ -569,25 +564,6 @@ func ToLite(EntityID string) string {
 	return fmt.Sprintf("%s...%s", EntityID[1:5], EntityID[len(EntityID)-5:len(EntityID)-1])
 }
 
-var (
-	snowflakeOnce sync.Once
-	snowflakeNode *snowflake.Node
-	snowflakeEror error
-)
-
-// #生成长度19位 超出 9007199254740992(2的53次方)
-func ToNext19() int64 {
-
-	snowflakeOnce.Do(func() {
-		snowflakeNode, snowflakeEror = snowflake.NewNode(1)
-	})
-	if snowflakeEror != nil {
-		return 0
-	}
-
-	return snowflakeNode.Generate().Int64()
-}
-
 // #生成长度16位 未超 9007199254740992(2的53次方)
 func ToNext() int64 {
 
@@ -597,6 +573,7 @@ func ToNext() int64 {
 	return result
 }
 
+// #应用所在目录
 func AtRoot() string {
 
 	FilePath, eror := os.Executable()
@@ -609,7 +586,11 @@ func AtRoot() string {
 	return FilePath
 }
 
-func ChEror(err error, msg string) {
+// #FatalWhenError 检查错误:出错时直接退出进程(log.Fatalln / os.Exit)。
+// #⚠️ 危险:会终止整个应用且无法被 recover 拦截,仅建议用于启动期的必要性检查
+// #(如配置加载、核心依赖初始化失败)。严禁在业务逻辑、HTTP 处理或并发任务中使用;
+// #业务错误请自行记录日志并返回,由调用方决定处理方式。
+func FatalWhenError(err error, msg string) {
 
 	if err != nil {
 		log.Fatalln(msg, err)

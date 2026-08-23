@@ -18,6 +18,9 @@ import (
 	"github.com/tidwall/gjson"
 )
 
+// #钉钉/内部网关 HTTP 调用超时:防止目标不可达时永久挂起调用方 goroutine
+const kzBotHTTPTimeout = 5 * time.Second
+
 // #错误消息
 type TBotConfig struct {
 	Ding4Bot int64  `json:"ding4Bot"` //#钉钉平台
@@ -48,6 +51,7 @@ func (this TBotConfig) ToErrorMsg1(ErrorMsg string) {
 			ListText = strings.Split(this.EndPoint, ",")
 
 			ClientGo := resty.New()
+			ClientGo.SetTimeout(kzBotHTTPTimeout)
 			for _, ItemPara := range ListText {
 
 				Request1 := ClientGo.R()
@@ -74,7 +78,7 @@ func (this TBotConfig) ToErrorMsg1(ErrorMsg string) {
 
 			sRequest := fmt.Sprintf("%s?access_token=%s&timestamp=%d&sign=%s", this.EndPoint, this.AccessID, TimeUnix, SignData)
 
-			client := http.Client{}
+			client := http.Client{Timeout: kzBotHTTPTimeout}
 
 			requestBody := strings.NewReader(ErrorMsg)
 			response, err := client.Post(sRequest, "application/json", requestBody)
@@ -117,6 +121,7 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 			ListText = strings.Split(this.EndPoint, ",")
 
 			ClientGo := resty.New()
+			ClientGo.SetTimeout(kzBotHTTPTimeout)
 			for _, ItemPara := range ListText {
 
 				Request1 := ClientGo.R()
@@ -178,7 +183,7 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 
 			sRequest := fmt.Sprintf("%s?access_token=%s&timestamp=%d&sign=%s", this.EndPoint, this.AccessID, TimeUnix, SignData)
 
-			client := http.Client{}
+			client := http.Client{Timeout: kzBotHTTPTimeout}
 
 			requestBody := strings.NewReader(ErrorMsg)
 			response, err := client.Post(sRequest, "application/json", requestBody)

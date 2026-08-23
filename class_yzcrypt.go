@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -17,13 +18,13 @@ import (
 //	YzCrypt.AES.Decrypt(key, crypted)    // AES解密
 //	YzCrypt.SM4.Encrypt(key, data)       // SM4加密
 //	YzCrypt.SM4.Decrypt(key, data)       // SM4解密
-var YzCrypt = yzCrypt{
+var YzCrypt = YzCryptClass{
 	AES: AES{},
 	SM4: SM4{},
 }
 
 // yzCrypt AES / SM4 加解密容器
-type yzCrypt struct {
+type YzCryptClass struct {
 	AES AES
 	SM4 SM4
 }
@@ -31,30 +32,53 @@ type yzCrypt struct {
 // AES AES加解密分组
 type AES struct{}
 
-// Encrypt AES加密
+// Encrypt AES加密(CBC/PKCS7)。
+// 每次加密随机生成 16 字节 IV 并前置到密文头部,避免固定 IV 导致
+// 相同明文前缀产生相同密文前缀(前缀泄露)。密文格式: IV(16B) || 密文本体。
 func (AES) Encrypt(key, originData []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 	blockSize := block.BlockSize()
-	originData = PKCS7DoPadding(originData, blockSize)
-	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize])
-	crypted := make([]byte, len(originData))
-	blockMode.CryptBlocks(crypted, originData)
+
+	iv := make([]byte, blockSize)
+	if _, err := rand.Read(iv); err != nil {
+		return nil, fmt.Errorf("生成随机IV失败: %v", err)
+	}
+
+	padded := PKCS7DoPadding(originData, blockSize)
+	crypted := make([]byte, blockSize+len(padded))
+	copy(crypted, iv)
+
+	blockMode := cipher.NewCBCEncrypter(block, iv)
+	blockMode.CryptBlocks(crypted[blockSize:], padded)
 	return crypted, nil
 }
 
-// Decrypt AES解密
+// Decrypt AES解密(CBC/PKCS7)。
+// 密文头部 16 字节为加密时前置的随机 IV,其余为密文本体。
 func (AES) Decrypt(key, crypted []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 	blockSize := block.BlockSize()
-	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
-	originData := make([]byte, len(crypted))
-	blockMode.CryptBlocks(originData, crypted)
+	if len(crypted) < 2*blockSize {
+		return nil, fmt.Errorf("密文长度不足:至少需要 IV(%dB)+一个分组(%dB)", blockSize, blockSize)
+	}
+	// #CBC CryptBlocks 对非分组整数倍的输入会 panic,提前拦截
+	if (len(crypted)-blockSize)%blockSize != 0 {
+		return nil, fmt.Errorf("密文本体长度不是分组(%dB)的整数倍", blockSize)
+	}
+
+	iv := crypted[:blockSize]
+	body := crypted[blockSize:]
+
+	blockMode := cipher.NewCBCDecrypter(block, iv)
+	originData := make([]byte, len(body))
+	blockMode.CryptBlocks(originData, body)
+
 	originData, err = PKCS7UnPadding(originData)
 	if err != nil {
 		return nil, err
@@ -141,17 +165,57 @@ func PKCS7UnPadding(originData []byte) ([]byte, error) {
 	return originData[:length-padding], nil
 }
 
-// EncryptAES AES加密 (兼容旧接口, 等价于 YzCrypt.AES.Encrypt)
+// aesEncryptLegacy AES加密(旧格式:CBC,固定 IV=密钥前16字节)。
+// ⚠️ 不安全:固定 IV 导致相同明文前缀产生相同密文前缀;仅用于兼容历史数据,
+// 新数据请使用 YzCrypt.AES.Encrypt(随机 IV 前置)。
+func aesEncryptLegacy(key, originData []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	blockSize := block.BlockSize()
+	originData = PKCS7DoPadding(originData, blockSize)
+	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize])
+	crypted := make([]byte, len(originData))
+	blockMode.CryptBlocks(crypted, originData)
+	return crypted, nil
+}
+
+// aesDecryptLegacy AES解密(旧格式:固定 IV=密钥前16字节)。
+// 仅用于解密旧接口加密的历史密文;新数据请使用 YzCrypt.AES.Decrypt。
+func aesDecryptLegacy(key, crypted []byte) ([]byte, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	blockSize := block.BlockSize()
+	// #CBC CryptBlocks 对非分组整数倍的输入会 panic,提前拦截
+	if len(crypted)%blockSize != 0 {
+		return nil, fmt.Errorf("密文长度不是分组(%dB)的整数倍", blockSize)
+	}
+	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
+	originData := make([]byte, len(crypted))
+	blockMode.CryptBlocks(originData, crypted)
+	originData, err = PKCS7UnPadding(originData)
+	if err != nil {
+		return nil, err
+	}
+	return originData, nil
+}
+
+// EncryptAES AES加密 (兼容旧接口;⚠️ 旧格式:固定 IV=密钥前16字节,不安全,
+// 新数据请用 YzCrypt.AES.Encrypt;本函数仅保证旧调用点与新格式互不干扰)
 func EncryptAES(key, originData []byte) ([]byte, error) {
-	return YzCrypt.AES.Encrypt(key, originData)
+	return aesEncryptLegacy(key, originData)
 }
 
-// DecryptAES AES解密 (兼容旧接口, 等价于 YzCrypt.AES.Decrypt)
+// DecryptAES AES解密 (兼容旧接口;仅能解密旧格式密文,历史数据请用本函数,
+// 新数据请用 YzCrypt.AES.Decrypt)
 func DecryptAES(key, crypted []byte) ([]byte, error) {
-	return YzCrypt.AES.Decrypt(key, crypted)
+	return aesDecryptLegacy(key, crypted)
 }
 
-// AES加密
+// AES加密(旧格式,hex 字符串,与 EncryptAES 配套)
 func SimplyEncryptAES(key, originData string) string {
 
 	if originData == "" {

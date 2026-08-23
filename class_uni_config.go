@@ -87,8 +87,9 @@ func (this TUniConfig) UrlBuild() string {
 		}
 	case "MySQL":
 		{
-			//#DbSource = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&loc=Local", UniConfig.UnicUser, UniConfig.UnicPswd, UniConfig.UnicSrvr, UniConfig.UnicPort, UniConfig.DataBase)
-			DbSource = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", this.UnicUser, this.UnicPswd, this.UnicSrvr, this.UnicPort, this.DataBase)
+			//#parseTime=true:让 database/sql 自动将 DATETIME 解析为 time.Time;
+			//#loc=Local:按本机时区解析,避免默认 UTC 导致时间偏差
+			DbSource = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&loc=Local", this.UnicUser, this.UnicPswd, this.UnicSrvr, this.UnicPort, this.DataBase)
 		}
 	case "SQLite":
 		{

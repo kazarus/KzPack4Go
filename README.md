@@ -2,7 +2,7 @@
 
 Go 通用工具包,整合业务后端日常开发所需的基础能力:**Redis 客户端、JWT 鉴权、AES / 国密 SM4 加解密、哈希与时间/数值工具、ID / UUID 生成、服务与数据库配置实体、日志落盘、钉钉告警、统一响应体、并发安全黑名单**等。
 
-基于 Go Modules 构建(`go 1.21+`),是 GOPATH 时代代码的现代化重构版本。
+基于 Go Modules 构建(`go 1.27+`),是 GOPATH 时代代码的现代化重构版本。
 
 ## 安装
 
@@ -20,7 +20,7 @@ import "github.com/kazarus/KzPack4Go"
 
 | 文件 | 说明 |
 |---|---|
-| `Redis4Go.go` | Redis 客户端封装,支持单机(`0/1`)与集群(`2`),提供 `NewClient` / `Ping` / `Close` / `Get` / `Set` 等常用操作 |
+| `Redis4Go.go` | Redis 客户端封装,支持单机(`0/1`)与集群(`2`),提供 `NewClient` / `Ping` / `Close` / `Get` / `Set` / `Keys` 等常用操作 |
 | `class_jwtauth.go` | JWT 令牌解析,`ParseToken1` / `ParseToken2` 仅接受 HMAC 签名,防算法混淆攻击 |
 | `class_yzcrypt.go` | AES-CBC 与国密 SM4 加解密,`YzCrypt.AES` / `YzCrypt.SM4`,并保留兼容旧接口 |
 | `class_kzutils.go` | 哈希、时间戳、日期/数值格式化、字符串处理、文件读写、ID / UUID 生成等通用工具 |
@@ -28,6 +28,7 @@ import "github.com/kazarus/KzPack4Go"
 | `class_srv_config.go` | 服务配置实体 `TSrvConfig`(Redis/队列/钉钉/上传路径等) |
 | `class_uni_config.go` | 数据库连接配置 `TUniConfig`,支持多种数据库 DSN 生成 |
 | `class_sys_status.go` | 系统状态/日志实体 `TSYSSTATUS`(日志落盘、钉钉卡片) |
+| `const_data_from.go` | 请求终端常量(`CONST_DATA_FROM_TO_*`:桌面/钉钉/微信/安卓/苹果) |
 | `class_bot_config.go` | 钉钉机器人告警推送 `TBotConfig` |
 | `class_black_list.go` | 并发安全黑名单 `TBlackList` |
 | `class_kzvalid.go` | 流程校验响应 `TKzValid` |
@@ -39,19 +40,25 @@ import "github.com/kazarus/KzPack4Go"
 ### 1. Redis 客户端
 
 ```go
-// 单机
-r := KzPack4Go.NewClient(0, "127.0.0.1:6379", "", "password")
+// 单机(Redis 6.0+ ACL 场景可传用户名,空串兼容老版本)
+r := KzPack4Go.NewClient(0, "127.0.0.1:6379", "redis-user", "password")
 defer r.Close()
 
 // 集群(地址逗号分隔)
 rc := KzPack4Go.NewClient(2, "node1:6379,node2:6379,node3:6379", "", "password")
 
+// 自定义单机库号与读写超时(零值字段沿用默认:库 11 / 超时 1000s)
+ro := KzPack4Go.NewClientWithOptions(0, "127.0.0.1:6379", "", "password", KzPack4Go.TRedisOptions{DB: 5, ReadTimeout: 3 * time.Second, WriteTimeout: 3 * time.Second})
+
 ctx := context.Background()
 r.Set(ctx, "key", "value", 0)
 val, _ := r.Get(ctx, "key").Result()
+keys := r.Keys(ctx, "user:*").Val() // 模式匹配
 ```
 
-> `RedisTyp`: `0` / `1` 为单机模式,`2` 为集群模式。
+> `RedisTyp`: `0` / `1` 为单机模式,`2` 为集群模式;**其它值会在 `NewClient` 构造期直接 panic(快速失败)**,避免命令方法返回 nil 后引发远程 panic。
+>
+> 单机模式默认写入 `DB 11`、读写超时 `1000s`(旧默认),需要自定义库号/超时请用 `NewClientWithOptions`(零值字段仍沿用旧默认)。
 
 ### 2. JWT 令牌解析
 
@@ -65,7 +72,7 @@ fmt.Println(claims.EnrollID, claims.UserName)
 usr, err := KzPack4Go.ParseToken2(tokenString, secret)
 ```
 
-> 仅接受 HMAC 签名算法,其他算法(如 `none`、`RS256`)会被拒绝,防止算法混淆攻击。
+> 仅接受 HMAC 签名算法,其他算法(如 `none`、`RS256`)会被拒绝,防止算法混淆攻击;无效令牌返回错误而非静默零值。
 
 ### 3. 加解密
 
@@ -78,7 +85,7 @@ plain, _ := KzPack4Go.YzCrypt.AES.Decrypt([]byte(key16), crypted)
 cipher, _ := KzPack4Go.YzCrypt.SM4.Encrypt(b64Key, "hello")
 text, _ := KzPack4Go.YzCrypt.SM4.Decrypt(b64Key, cipher)
 
-// 兼容旧接口
+// 兼容旧接口(旧格式:固定IV=密钥前16字节,⚠️ 仅用于历史数据/旧调用点)
 KzPack4Go.EncryptAES(key, data)
 KzPack4Go.DecryptAES(key, crypted)
 KzPack4Go.EncryptSM4(key, data)
@@ -87,35 +94,58 @@ KzPack4Go.SimplyEncryptAES(key, data) // 返回 hex 字符串
 KzPack4Go.SimplyDecryptAES(key, hexText)
 ```
 
-> `YzCrypt.AES` 使用 CBC 模式、PKCS7 填充;`YzCrypt.SM4` 使用 ECB 模式、密钥须为 16 字节。
+> `YzCrypt.AES` 使用 CBC 模式、PKCS7 填充,每次加密随机生成 16 字节 IV 并**前置**到密文头部(格式 `IV(16B)||密文`),避免固定 IV 导致相同明文前缀产生相同密文前缀;`YzCrypt.SM4` 使用 ECB 模式、密钥须为 16 字节。
+>
+> ⚠️ **兼容旧接口 `EncryptAES` / `DecryptAES` / `Simply*` 保留旧格式(固定 IV=密钥前 16 字节,不安全),仅用于解密历史数据与旧调用点,新数据请一律使用 `YzCrypt.AES`。两种格式不互通,请勿混用。**
 
 ### 4. 通用工具
 
 ```go
 // 哈希(支持 md5 / sha1 / sha256 / sha512)
-hash := KzPack4Go.ToHash("text", "sha256", false)
+hash, err := KzPack4Go.ToHash("text", "sha256", false)
 
-// 时间戳
+// 时间戳(紧凑数字格式)
 ms   := KzPack4Go.ToMsec() // 20260822150405.000
 date := KzPack4Go.ToDate() // 20260822
+week := KzPack4Go.ToWeek() // 202634(ISO 年*100+周)
 
 // 数值格式化
 fmt.Println(KzPack4Go.Format2Float(3.14159)) // 3.14
 fmt.Println(KzPack4Go.Float0Text(1.5000))     // 1.5
 
-// ID / UUID 生成
-uuid := KzPack4Go.ToUUID()   // {xxxxxxxx-...}
-id16 := KzPack4Go.ToNext()   // 16 位雪花 ID
-id19 := KzPack4Go.ToNext19() // 19 位雪花 ID(超出 2^53)
-
 // 字符串判断
-KzPack4Go.Contains("a,b,c", "b") // true
-KzPack4Go.Contain("b", []string{"a", "b"})
+KzPack4Go.Contains("a,b,c", "b")          // true(逗号分隔串)
+KzPack4Go.Contain("b", []string{"a","b"}) // true(切片)
+
+// 三元风格选择
+KzPack4Go.IfThenI(ok, 1, 0) // int64
+KzPack4Go.IfThenS(ok, "y", "n")
+
+// 文件工具
+KzPack4Go.FileExist("cfg.json")          // (bool, error)
+KzPack4Go.ToFile("cfg.json", cfg)        // JSON 存档
+KzPack4Go.InFile("cfg.json", &cfg)       // 从 JSON 初始化(不存在则创建)
+KzPack4Go.FormatFileSize(2048)           // "2.00KB"
 ```
 
-> `ToHash` 仅支持 `md5` / `sha1` / `sha256` / `sha512`,其它类型返回错误提示字符串。
+> `ToHash` 仅支持 `md5` / `sha1` / `sha256` / `sha512`,其它类型返回空串与错误;`isHex=true` 时输入非法 hex 同样返回错误。
 
-### 5. 统一响应体
+### 5. ID / UUID 生成
+
+```go
+// UUID(带花括号,多用于 EntityID)
+uuid := KzPack4Go.ToUUID()        // {xxxxxxxx-...}
+lite := KzPack4Go.ToLite(uuid)    // 1234...9012(简写便于对比)
+
+// 16 位雪花 ID(未超 2^53,前端安全)
+id := KzPack4Go.ToNext()
+
+// 初始化 ID 生成器(WorkerID 须在 [0,63] 区间,默认 WorkerIdBitLength=6)
+KzPack4Go.NewIdGenerator(5)
+id = KzPack4Go.ToNext()
+```
+
+### 6. 统一响应体
 
 ```go
 // 成功返回数据
@@ -126,9 +156,10 @@ KzPack4Go.ToPage(listData, len, page, size, total)
 
 // 错误返回
 KzPack4Go.ToEROR("发生错误")
+KzPack4Go.ToErrorCnt("密码错误", "PWD", 3) // 携带错误次数
 ```
 
-### 6. 配置实体
+### 7. 配置实体
 
 ```go
 // 服务配置
@@ -145,7 +176,7 @@ uni.ClearAttr()       // 脱敏
 
 > `TUniConfig.UrlBuild` 支持 `PostgreSQL` / `PolorDB` / `SQL Server` / `Oracle` / `MySQL` / `SQLite` / `dm`(达梦) / `opengauss`。
 
-### 7. 钉钉告警与日志
+### 8. 钉钉告警与日志
 
 ```go
 var bot KzPack4Go.TBotConfig
@@ -162,9 +193,28 @@ st.ToErrorLog(usr, cfg, bot, logger)
 card := st.ToFeedCard1()
 ```
 
+### 9. 并发安全黑名单
+
+```go
+// 零值可直接使用(无 TTL、无容量上限)
+var bl KzPack4Go.TBlackList
+bl.Append("u001", KzPack4Go.TErrorUsr{UserCode: "u001", ErrorCnt: 1})
+usr, ok := bl.Select("u001")
+bl.Remove("u001")
+
+// 长跑服务建议限制内存:容量上限 + 有效期(登录失败计数等场景)
+bl2 := KzPack4Go.NewBlackList(10000, 10*time.Minute)
+bl2.Append("u002", KzPack4Go.TErrorUsr{UserCode: "u002", ErrorCnt: 3})
+```
+
+> `MaxSize>0` 时达到上限按"最早到期/最早插入"淘汰旧条目;`TTL>0` 时条目过期后 `Select` 视为不存在,并在追加时按 `TTL/2` 间隔整表清扫,防止过期条目长期驻留。
+
 ## 注意事项
 
 - `TSrvConfig` / `TUniConfig` 序列化时包含明文口令字段,对外输出前请先调用 `ClearAttr()` 脱敏。
-- `ToHash` 仅支持 `md5` / `sha1` / `sha256` / `sha512`,其它类型返回错误提示。
+- `FatalWhenError(err, msg)` 出错时**直接退出进程**(`log.Fatalln`),仅建议用于应用启动期的必要性检查,业务代码请自行处理错误。
+- `ToHash` 仅支持 `md5` / `sha1` / `sha256` / `sha512`,其它类型与非法 hex 输入返回空串与错误。
 - `SM4` 加解密密钥须为 16 字节(Base64 编码);`AES` 密钥长度须符合 AES 规范(16/24/32 字节)。
-- 依赖第三方库:`github.com/redis/go-redis/v9`、`github.com/golang-jwt/jwt/v5`、`github.com/tjfoc/gmsm`、`github.com/sirupsen/logrus`、`github.com/go-resty/resty`、`github.com/bwmarrin/snowflake`、`github.com/yitter/idgenerator-go`、`github.com/gofrs/uuid/v5` 等。
+- `YzCrypt.AES` 密文为 `随机IV(16B)||密文` 格式;旧接口 `EncryptAES`/`DecryptAES`/`Simply*` 为旧格式(固定 IV=密钥前 16 字节),仅用于兼容历史数据,新数据请使用 `YzCrypt.AES`,两种格式不互通。
+- `NewClient` 对非法 `RedisTyp` 构造期快速失败(panic);单机模式默认写入 `DB 11`、读写超时 `1000s`(旧默认,可用 `NewClientWithOptions` 覆盖)。
+- 依赖第三方库:`github.com/redis/go-redis/v9`、`github.com/golang-jwt/jwt/v5`、`github.com/tjfoc/gmsm`、`github.com/sirupsen/logrus`、`github.com/go-resty/resty/v2`、`github.com/yitter/idgenerator-go`、`github.com/gofrs/uuid/v5` 等。

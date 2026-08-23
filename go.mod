@@ -3,7 +3,6 @@ module github.com/kazarus/KzPack4Go
 go 1.27.0
 
 require (
-	github.com/bwmarrin/snowflake v0.3.0
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/gofrs/uuid/v5 v5.5.1
 	github.com/golang-jwt/jwt/v5 v5.3.1

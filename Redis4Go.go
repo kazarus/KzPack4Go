@@ -14,33 +14,52 @@ type TRedis4Go struct {
 	Client2  *redis.ClusterClient
 }
 
+// TRedisOptions Redis 客户端可选参数;零值沿用 NewClient 的旧默认值
+// (单机 DB=11,读写超时 1000s)。如确需使用库 0,可在构造后通过
+// Client1.Options().DB 直接调整。
+type TRedisOptions struct {
+	DB           int           // #单机库号;<=0 时使用默认 11
+	ReadTimeout  time.Duration // #读超时;<=0 时使用默认 1000s
+	WriteTimeout time.Duration // #写超时;<=0 时使用默认 1000s
+}
+
 func NewClient(RedisTyp int64, RedisSrv string, RedisUsr string, RedisPwd string) *TRedis4Go {
+
+	return NewClientWithOptions(RedisTyp, RedisSrv, RedisUsr, RedisPwd, TRedisOptions{})
+}
+
+// NewClientWithOptions 与 NewClient 相同,但允许自定义单机库号与读写超时;
+// 零值字段回退到旧默认值,保证与 NewClient 行为一致。
+func NewClientWithOptions(RedisTyp int64, RedisSrv string, RedisUsr string, RedisPwd string, Options TRedisOptions) *TRedis4Go {
 
 	var Redis4Go = TRedis4Go{}
 	Redis4Go.RedisTyp = RedisTyp
+
+	// #零值回退到旧默认值(与 NewClient 一致)
+	db := Options.DB
+	if db <= 0 {
+		db = 11
+	}
+	readTimeout := Options.ReadTimeout
+	if readTimeout <= 0 {
+		readTimeout = 1000 * time.Second
+	}
+	writeTimeout := Options.WriteTimeout
+	if writeTimeout <= 0 {
+		writeTimeout = 1000 * time.Second
+	}
 
 	switch RedisTyp {
 	case 0, 1:
 		{
 			options := redis.Options{
-				Network:         "tcp",
-				Addr:            fmt.Sprintf("%s", RedisSrv),
-				Dialer:          nil,
-				OnConnect:       nil,
-				Password:        fmt.Sprintf("%s", RedisPwd),
-				DB:              11,
-				MaxRetries:      0,
-				MinRetryBackoff: 0,
-				MaxRetryBackoff: 0,
-				DialTimeout:     0,
-				ReadTimeout:     1000 * time.Second,
-				WriteTimeout:    1000 * time.Second,
-				PoolSize:        0,
-				MinIdleConns:    0,
-				MaxIdleConns:    0,
-				PoolTimeout:     0,
-				TLSConfig:       nil,
-				Limiter:         nil,
+				Network:      "tcp",
+				Addr:         RedisSrv,
+				Username:     RedisUsr,
+				Password:     RedisPwd,
+				DB:           db,
+				ReadTimeout:  readTimeout,
+				WriteTimeout: writeTimeout,
 			}
 
 			Redis4Go.Client1 = redis.NewClient(&options)
@@ -50,6 +69,7 @@ func NewClient(RedisTyp int64, RedisSrv string, RedisUsr string, RedisPwd string
 			var ListAddr = strings.Split(RedisSrv, ",")
 			options := &redis.ClusterOptions{
 				Addrs:    ListAddr,
+				Username: RedisUsr,
 				Password: RedisPwd,
 			}
 

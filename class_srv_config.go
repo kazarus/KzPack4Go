@@ -268,6 +268,10 @@ func (this *TSrvConfig) ClearAttr() {
 	this.RedisKey = ""
 	this.RedisPwd = ""
 	this.RedisSrv = ""
+	this.RedisUsr = ""
+	this.QueueSrv = ""
+	this.QueuePwd = ""
+	this.QueueUsr = ""
 	this.SocketAt = ""
 	this.SilentAt = ""
 
@@ -275,9 +279,9 @@ func (this *TSrvConfig) ClearAttr() {
 	this.Log4goAt = ""
 }
 
-func (this *TSrvConfig) ToRabbitMQ(aQueueName string) string {
+func (this *TSrvConfig) ToRabbitMQ(queueName string) string {
 
-	return fmt.Sprintf("tech.cxcloud.%s.%s", this.HttpPort, aQueueName)
+	return fmt.Sprintf("tech.cxcloud.%s.%s", this.HttpPort, queueName)
 }
 
 func (this *TSrvConfig) GetMakeYearWhenTodo(SourceND int64) int64 {
