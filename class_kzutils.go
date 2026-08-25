@@ -362,7 +362,11 @@ func AnyToVal(value interface{}) string {
 // #与 AnyToVal 共享转换逻辑
 func ToEscape(value interface{}) string {
 
-	return strings.Trim(strconv.Quote(AnyToVal(value)), `"`)
+	// #strconv.Quote 保证首尾字符必为外层引号、内部引号必被转义,精确剥掉首尾各一个字符;
+	// #不能使用 strings.Trim(...,"\"")——它会连转义引号 \" 的尾部引号一起剥掉
+	var quoted = strconv.Quote(AnyToVal(value))
+
+	return quoted[1 : len(quoted)-1]
 }
 
 func IfThenI(Value bool, TrueVal, FailVal int64) int64 {
