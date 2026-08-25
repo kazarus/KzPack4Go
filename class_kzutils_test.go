@@ -382,6 +382,27 @@ func TestAnyToValMoreTypes(t *testing.T) {
 	}
 }
 
+func TestToEscape(t *testing.T) {
+	cases := []struct {
+		in   interface{}
+		want string
+	}{
+		{nil, ""},
+		{42, "42"},
+		{"hello", "hello"},
+		{`a"b`, `a\"b`},  // 内嵌引号被转义,外层引号被去除
+		{`a\b`, `a\\b`},  // 反斜杠被转义
+		{"a\nb", `a\nb`}, // 换行符被转义为 \n
+		{"中文", "中文"},     // 可打印 Unicode 保留
+		{[]byte("hi"), "hi"},
+	}
+	for _, c := range cases {
+		if got := ToEscape(c.in); got != c.want {
+			t.Errorf("ToEscape(%v) = %q; want %q", c.in, got, c.want)
+		}
+	}
+}
+
 func TestKzUnicodeMarshal(t *testing.T) {
 	data, err := json.Marshal(KzUnicode("中文"))
 	if err != nil {

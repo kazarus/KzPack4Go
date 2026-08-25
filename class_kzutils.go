@@ -358,6 +358,13 @@ func AnyToVal(value interface{}) string {
 	return key
 }
 
+// #ToEscape interface 转字符串并对引号/反斜杠/控制字符做 Go 转义(去掉外层引号);
+// #与 AnyToVal 共享转换逻辑
+func ToEscape(value interface{}) string {
+
+	return strings.Trim(strconv.Quote(AnyToVal(value)), `"`)
+}
+
 func IfThenI(Value bool, TrueVal, FailVal int64) int64 {
 
 	Result := FailVal
