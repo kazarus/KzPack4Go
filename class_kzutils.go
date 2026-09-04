@@ -435,6 +435,17 @@ func Contains(AllString string, SubString string) bool {
 	return false
 }
 
+func GetEnvDef(Key string, Value string) string {
+
+	var result string
+	result = os.Getenv(Value)
+	if result == "" {
+		return Value
+	}
+
+	return result
+}
+
 // #判断是否文件
 func IsFile(FilePath string) bool {
 
