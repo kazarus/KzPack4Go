@@ -30,6 +30,7 @@ type TTokenUsr struct {
 	SynzFrom string  `json:"synzFrom"` //#同步方向
 
 	Url4Path string `json:"url4Path"` //#请求链接
+	UsrToken string `json:"usrToken"` //#请求令牌
 }
 
 func ParseToken1(tokenString string, tokenSecret string) (*TKzCustomClaims, error) {

@@ -77,6 +77,9 @@ type TSrvConfig struct {
 	MaxLifetimes int64 //#最长保留时间
 	MaxIdleTimes int64 //#最长空闲时间
 
+	SecretOnDataBase int64 //#数据存储加密.{默认:0}
+	SecretOnNewWorks int64 //#数据通讯加密.{默认:0}
+
 	Path4ExtExcludes string //#禁止附件类型:以逗号隔开
 	PathNameExcludes string //#禁止附件名称:以逗号隔开
 
