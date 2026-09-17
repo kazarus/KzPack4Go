@@ -438,7 +438,7 @@ func Contains(AllString string, SubString string) bool {
 func GetEnvDef(Key string, Value string) string {
 
 	var result string
-	result = os.Getenv(Value)
+	result = os.Getenv(Key)
 	if result == "" {
 		return Value
 	}

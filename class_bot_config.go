@@ -34,7 +34,7 @@ type TBotConfig struct {
 	UploadD2 int64  `json:"uploadD2"` //#上传附件
 }
 
-func (this TBotConfig) ToErrorMsg1(ErrorMsg string) {
+func (this TBotConfig) ToErrorMsg1(ErrorMsg string, TokenUsr TTokenUsr) {
 
 	if this.EndPoint == "" {
 		return
@@ -57,7 +57,9 @@ func (this TBotConfig) ToErrorMsg1(ErrorMsg string) {
 				Request1 := ClientGo.R()
 				Request1.SetFormData(map[string]string{"params": string(ErrorMsg)})
 
-				TargetTo := fmt.Sprintf("%s/core/tsysstatus/syncfrom?whobuild=3302260000&userindx=1001", ItemPara)
+				//#安全:网关 syncfrom 已撤出免登白名单,转发须携带令牌并按令牌传租户参数
+				TargetTo := fmt.Sprintf("%s/core/tsysstatus/syncfrom?whobuild=%d&userindx=%d", ItemPara, TokenUsr.WhoBuild, TokenUsr.UserRoot)
+				Request1.Header.Set("usrtoken", TokenUsr.UsrToken)
 
 				_, eror := Request1.Post(TargetTo)
 				if eror != nil {
@@ -98,7 +100,7 @@ func (this TBotConfig) ToErrorMsg1(ErrorMsg string) {
 	}
 }
 
-func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
+func (this TBotConfig) ToErrorMsg2(ErrorMsg string, TokenUsr TTokenUsr) {
 
 	var eror error
 	var SysStatus TSYSSTATUS
@@ -134,7 +136,7 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 				default:
 					{
 						//#上传附件-<
-						TargetTo = fmt.Sprintf("%s/core/tpath/uploadd2?whobuild=3302260000&userindx=1001", ItemPara)
+						TargetTo = fmt.Sprintf("%s/core/tpath/uploadd2?whobuild=%d&userindx=%d", ItemPara, TokenUsr.WhoBuild, TokenUsr.UserRoot)
 						FormPara = "upload[]"
 
 						file, eror := os.Stat(SysStatus.Path4Req)
@@ -143,6 +145,7 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 						} else if file.Size() > 0 {
 
 							FileByte, _ := os.ReadFile(SysStatus.Path4Req)
+							Request1.Header.Set("usrtoken", TokenUsr.UsrToken)
 							Request1.SetFileReader(FormPara, fmt.Sprintf("%s.req", SysStatus.EntityID), bytes.NewReader(FileByte))
 							resp, eror := Request1.Post(TargetTo)
 							if eror != nil {
@@ -162,7 +165,9 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string) {
 				ErrorMsg = SysStatus.ToFeedCard2()
 				Request1.SetFormData(map[string]string{"params": string(ErrorMsg)})
 
-				TargetTo = fmt.Sprintf("%s/core/tsysstatus/syncfrom?whobuild=3302260000&userindx=1001", ItemPara)
+				//#安全:同 ToErrorMsg1,网关 syncfrom 需要令牌并按令牌传租户参数
+				TargetTo = fmt.Sprintf("%s/core/tsysstatus/syncfrom?whobuild=%d&userindx=%d", ItemPara, TokenUsr.WhoBuild, TokenUsr.UserRoot)
+				Request1.Header.Set("usrtoken", TokenUsr.UsrToken)
 
 				_, eror = Request1.Post(TargetTo)
 				if eror != nil {

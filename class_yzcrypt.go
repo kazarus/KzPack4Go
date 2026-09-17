@@ -23,7 +23,7 @@ var YzCrypt = YzCryptClass{
 	SM4: SM4{},
 }
 
-// yzCrypt AES / SM4 加解密容器
+// YzCrypt AES / SM4 加解密容器
 type YzCryptClass struct {
 	AES AES
 	SM4 SM4
