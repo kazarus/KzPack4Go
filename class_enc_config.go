@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/tjfoc/gmsm/sm2"
+	"github.com/emmansun/gmsm/sm2"
 )
 
 type TEncConfig struct {
@@ -103,12 +103,14 @@ func gmKeyFromComponents(dStr, xStr, yStr string) (*sm2.PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	curve := sm2.P256Sm2()
-	if !curve.IsOnCurve(x, y) {
-		return nil, fmt.Errorf("sm2 公钥点不在曲线上，密钥文件可能已损坏")
+	dBytes := make([]byte, 32)
+	d.FillBytes(dBytes)
+	priv, eror := sm2.NewPrivateKey(dBytes)
+	if eror != nil {
+		return nil, fmt.Errorf("sm2 私钥分量非法: %v", eror)
 	}
-	return &sm2.PrivateKey{
-		PublicKey: sm2.PublicKey{Curve: curve, X: x, Y: y},
-		D:         d,
-	}, nil
+	if priv.X.Cmp(x) != 0 || priv.Y.Cmp(y) != 0 {
+		return nil, fmt.Errorf("sm2 公钥分量与私钥不匹配，密钥文件可能已损坏")
+	}
+	return priv, nil
 }

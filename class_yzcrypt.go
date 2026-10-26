@@ -9,7 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/tjfoc/gmsm/sm4"
+	"github.com/emmansun/gmsm/sm4"
 )
 
 // YzCrypt AES / SM4 加解密入口。
