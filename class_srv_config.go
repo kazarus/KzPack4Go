@@ -67,7 +67,6 @@ type TSrvConfig struct {
 	LoginOut int64 //#启用登录超时
 	LoginMin int64 //#登录超时分钟
 
-	SecretOn int64 //#开启敏感加密
 	ISilence int64 //#静默创建视图
 	UsesCron int64 //#启用定时任务
 	Delay10s int64 //#消息延时X秒,智慧教育延时10秒,其他默认0秒;
@@ -77,8 +76,13 @@ type TSrvConfig struct {
 	MaxLifetimes int64 //#最长保留时间
 	MaxIdleTimes int64 //#最长空闲时间
 
+	SecretOn         int64 //#开启数据加密
+	SecretByKeyIndex int64 //#密钥所在索引
 	SecretOnDataBase int64 //#数据存储加密.{默认:0}
 	SecretOnNewWorks int64 //#数据通讯加密.{默认:0}
+	SecretOnPlatForm int64 //#数据加密平台.{默认:0},{0:甬政,1:量讯,2:KMS(密码云),3:FLK(加密机)};以主仓 utils/const/const_secret_on.go 为准
+	VerifyOn         int64 //#开启完整验证
+	VerificationMode int64 //#完整验证模式
 
 	Path4ExtExcludes string //#禁止附件类型:以逗号隔开
 	PathNameExcludes string //#禁止附件名称:以逗号隔开
@@ -89,6 +93,7 @@ type TSrvConfig struct {
 	MakeYearWhenTodo int64 //#待办申请启用年度.{默认:1}
 	VoidYearWhenTodo int64 //#待办审核启用年度.{默认:0}
 
+	AllowUsrRegister         int64 //#开放用户注册
 	AccessControlAllowOrigin string
 }
 
@@ -142,7 +147,7 @@ func (this TSrvConfig) MarshalJSON() ([]byte, error) {
 	result["innerURL"] = this.InnerURL
 	result["loginOut"] = this.LoginOut
 	result["loginMin"] = this.LoginMin
-	result["secretOn"] = this.SecretOn
+
 	result["iSilence"] = this.ISilence
 	result["usesCron"] = this.UsesCron
 	result["delay10s"] = this.Delay10s
@@ -152,6 +157,14 @@ func (this TSrvConfig) MarshalJSON() ([]byte, error) {
 	result["maxLifetimes"] = this.MaxLifetimes
 	result["maxIdleTimes"] = this.MaxIdleTimes
 
+	result["secretOn"] = this.SecretOn
+	result["secretByKeyIndex"] = this.SecretByKeyIndex
+	result["secretOnDataBase"] = this.SecretOnDataBase
+	result["secretOnNewWorks"] = this.SecretOnNewWorks
+	result["secretOnPlatForm"] = this.SecretOnPlatForm
+	result["verifyOn"] = this.VerifyOn
+	result["verificationMode"] = this.VerificationMode
+
 	result["path4ExtExcludes"] = this.Path4ExtExcludes
 	result["pathNameExcludes"] = this.PathNameExcludes
 	result["useRedisWhenExpd"] = this.UseRedisWhenExpd
@@ -159,6 +172,7 @@ func (this TSrvConfig) MarshalJSON() ([]byte, error) {
 	result["makeYearWhenTodo"] = this.MakeYearWhenTodo
 	result["voidYearWhenTodo"] = this.VoidYearWhenTodo
 
+	result["allowUsrRegister"] = this.AllowUsrRegister
 	result["accessControlAllowOrigin"] = this.AccessControlAllowOrigin
 
 	return json.Marshal(result)

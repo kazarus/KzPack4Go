@@ -25,11 +25,14 @@ func TestTSrvConfigJSONStable(t *testing.T) {
 		SynzFrom: "NTOW", WorkerID: 7,
 		ThirdURL: "third", InnerURL: "inner",
 		LoginOut: 1, LoginMin: 9,
-		SecretOn: 1, ISilence: 0, UsesCron: 1, Delay10s: 10,
+		SecretOn: 1, SecretByKeyIndex: 2, SecretOnDataBase: 0, SecretOnNewWorks: 0, SecretOnPlatForm: 1,
+		VerifyOn: 1, VerificationMode: 2,
+		ISilence: 0, UsesCron: 1, Delay10s: 10,
 		MaxOpenConns: 500, MaxIdleConns: 200, MaxLifetimes: 60, MaxIdleTimes: 10,
 		Path4ExtExcludes: ".exe", PathNameExcludes: "evil",
 		UseRedisWhenExpd: 1, UpdateOnWhenExpd: 1,
 		MakeYearWhenTodo: 1, VoidYearWhenTodo: 0,
+		AllowUsrRegister: 1,
 		AccessControlAllowOrigin: "*",
 	}
 
@@ -58,11 +61,15 @@ func TestTSrvConfigJSONStable(t *testing.T) {
 		"synzFrom": "NTOW", "workerID": float64(7),
 		"thirdURL": "third", "innerURL": "inner",
 		"loginOut": float64(1), "loginMin": float64(9),
-		"secretOn": float64(1), "iSilence": float64(0), "usesCron": float64(1), "delay10s": float64(10),
+		"secretOn": float64(1), "secretByKeyIndex": float64(2), "secretOnDataBase": float64(0),
+		"secretOnNewWorks": float64(0), "secretOnPlatForm": float64(1),
+		"verifyOn": float64(1), "verificationMode": float64(2),
+		"iSilence": float64(0), "usesCron": float64(1), "delay10s": float64(10),
 		"maxOpenConns": float64(500), "maxIdleConns": float64(200), "maxLifetimes": float64(60), "maxIdleTimes": float64(10),
 		"path4ExtExcludes": ".exe", "pathNameExcludes": "evil",
 		"useRedisWhenExpd": float64(1), "updateOnWhenExpd": float64(1),
 		"makeYearWhenTodo": float64(1), "voidYearWhenTodo": float64(0),
+		"allowUsrRegister": float64(1),
 		"accessControlAllowOrigin": "*",
 	}
 

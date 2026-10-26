@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -20,6 +21,9 @@ import (
 
 // #钉钉/内部网关 HTTP 调用超时:防止目标不可达时永久挂起调用方 goroutine
 const kzBotHTTPTimeout = 5 * time.Second
+
+const CXCLOUD_URLS_CORE_TPATH_UPLOADD2 = "/gapi/core/tpath/uploadd2"
+const CXCLOUD_URLS_CORE_TSYSSTATUS_SYNCFROM = "/gapi/core/tsysstatus/syncfrom"
 
 // #错误消息
 type TBotConfig struct {
@@ -58,7 +62,7 @@ func (this TBotConfig) ToErrorMsg1(ErrorMsg string, TokenUsr TTokenUsr) {
 				Request1.SetFormData(map[string]string{"params": string(ErrorMsg)})
 
 				//#安全:网关 syncfrom 已撤出免登白名单,转发须携带令牌并按令牌传租户参数
-				TargetTo := fmt.Sprintf("%s/core/tsysstatus/syncfrom?whobuild=%d&userindx=%d", ItemPara, TokenUsr.WhoBuild, TokenUsr.UserRoot)
+				TargetTo := fmt.Sprintf("%s%s?whobuild=%d&userindx=%d", ItemPara, CXCLOUD_URLS_CORE_TSYSSTATUS_SYNCFROM, TokenUsr.WhoBuild, TokenUsr.UserRoot)
 				Request1.Header.Set("usrtoken", TokenUsr.UsrToken)
 
 				_, eror := Request1.Post(TargetTo)
@@ -136,7 +140,7 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string, TokenUsr TTokenUsr) {
 				default:
 					{
 						//#上传附件-<
-						TargetTo = fmt.Sprintf("%s/core/tpath/uploadd2?whobuild=%d&userindx=%d", ItemPara, TokenUsr.WhoBuild, TokenUsr.UserRoot)
+						TargetTo = fmt.Sprintf("%s%s?whobuild=%d&userindx=%d", ItemPara, CXCLOUD_URLS_CORE_TPATH_UPLOADD2, TokenUsr.WhoBuild, TokenUsr.UserRoot)
 						FormPara = "upload[]"
 
 						file, eror := os.Stat(SysStatus.Path4Req)
@@ -149,6 +153,7 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string, TokenUsr TTokenUsr) {
 							Request1.SetFileReader(FormPara, fmt.Sprintf("%s.req", SysStatus.EntityID), bytes.NewReader(FileByte))
 							resp, eror := Request1.Post(TargetTo)
 							if eror != nil {
+								log.Printf("@eror=botconfig,errormsg=%s", eror.Error())
 								return
 							}
 
@@ -166,7 +171,7 @@ func (this TBotConfig) ToErrorMsg2(ErrorMsg string, TokenUsr TTokenUsr) {
 				Request1.SetFormData(map[string]string{"params": string(ErrorMsg)})
 
 				//#安全:同 ToErrorMsg1,网关 syncfrom 需要令牌并按令牌传租户参数
-				TargetTo = fmt.Sprintf("%s/core/tsysstatus/syncfrom?whobuild=%d&userindx=%d", ItemPara, TokenUsr.WhoBuild, TokenUsr.UserRoot)
+				TargetTo = fmt.Sprintf("%s%s?whobuild=%d&userindx=%d", ItemPara, CXCLOUD_URLS_CORE_TSYSSTATUS_SYNCFROM, TokenUsr.WhoBuild, TokenUsr.UserRoot)
 				Request1.Header.Set("usrtoken", TokenUsr.UsrToken)
 
 				_, eror = Request1.Post(TargetTo)

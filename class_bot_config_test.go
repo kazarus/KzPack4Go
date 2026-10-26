@@ -38,7 +38,7 @@ func TestToErrorMsg1DingTalk(t *testing.T) {
 	}
 }
 
-// Ding4Bot=0:内部网关路径,POST form 到 /core/tsysstatus/syncfrom,须携带令牌与租户参数
+// Ding4Bot=0:内部网关路径,POST form 到 /gapi/core/tsysstatus/syncfrom,须携带令牌与租户参数
 func TestToErrorMsg1Gateway(t *testing.T) {
 	var gotPath string
 	var gotForm string
@@ -56,7 +56,7 @@ func TestToErrorMsg1Gateway(t *testing.T) {
 	bot := TBotConfig{Ding4Bot: 0, EndPoint: srv.URL}
 	bot.ToErrorMsg1("some error", testTokenUsr)
 
-	if gotPath != "/core/tsysstatus/syncfrom" {
+	if gotPath != "/gapi/core/tsysstatus/syncfrom" {
 		t.Errorf("请求路径 = %s", gotPath)
 	}
 	if gotForm != "some error" {
