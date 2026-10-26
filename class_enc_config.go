@@ -28,8 +28,8 @@ func (this TEncConfig) MarshalJSON() ([]byte, error) {
 	result["x"] = this.X
 	result["y"] = this.Y
 
-	result["cipherBy"] = "SM2-C1C3C2/SM4-CBC"
-	result["metaData"] = "随机生成 16 字节 SM4 密钥，用公钥 SM2 加密(C1C3C2)后 base64 放入 X-GM-KEY 请求头"
+	//#result["cipherBy"] = "SM2-C1C3C2/SM4-CBC"
+	//#result["metaData"] = "随机生成 16 字节 SM4 密钥，用公钥 SM2 加密(C1C3C2)后 base64 放入 X-GM-KEY 请求头"
 
 	return json.Marshal(result)
 }
