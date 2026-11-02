@@ -39,6 +39,7 @@ type TEROR struct {
 
 	ErrorCnt int64
 	ErrorKey string
+	TravelID string
 	CryptTxt string
 
 	ListData interface{}
@@ -63,6 +64,7 @@ func (this TEROR) MarshalJSON() ([]byte, error) {
 
 	result["ERRORCNT"] = this.ErrorCnt
 	result["ERRORKEY"] = this.ErrorKey
+	result["TRAVELID"] = this.TravelID
 	result["CRYPTTXT"] = this.CryptTxt
 
 	if this.ListData == nil {
@@ -180,9 +182,16 @@ func ToDATA(OnStatus bool, ErorCode string, ErorMemo string, DataSize int, ListD
 }
 
 // #允许指定消息级别,ErrLevel<0时, 不予消息提示
-func ToErrorKey(ErorMemo string, ErrorKey string) TEROR {
+// #TravelID 为可选参数(默认空串):两参调用沿用旧行为,三参调用可带流程号
+func ToErrorKey(ErorMemo string, ErrorKey string, TravelID ...string) TEROR {
 
 	var result TEROR
+
+	//#取第一个可选流程号;不传时保持空串,兼容历史两参调用
+	var travelID string
+	if len(TravelID) > 0 {
+		travelID = TravelID[0]
+	}
 
 	result.DataSize = 0
 	result.OnStatus = false
@@ -190,6 +199,7 @@ func ToErrorKey(ErorMemo string, ErrorKey string) TEROR {
 	result.ErorMemo = ErorMemo
 	result.ErrLevel = 0
 	result.ErrorKey = ErrorKey
+	result.TravelID = travelID
 
 	result.DataDate = ToDate()
 	result.DataTime = ToTime()
