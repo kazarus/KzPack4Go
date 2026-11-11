@@ -251,7 +251,7 @@ func (this *TSrvConfig) ToDefault() {
 	this.MaxOpenConns = IfThenI(this.MaxOpenConns == 0, 500, this.MaxOpenConns)
 	this.MaxIdleConns = IfThenI(this.MaxIdleConns == 0, 200, this.MaxIdleConns)
 	this.MaxLifetimes = IfThenI(this.MaxLifetimes == 0, 60, this.MaxLifetimes)
-	//this.MaxIdleTimes = IfThenI(this.MaxIdleTimes == 0, 10, this.MaxIdleTimes)
+	this.MaxIdleTimes = IfThenI(this.MaxIdleTimes == 0, 10, this.MaxIdleTimes)
 
 	//#配置升级.默认赋值
 	this.Path4ExtExcludes = IfThenS(this.Path4ExtExcludes == "", ".html,.js,.ts,.exe", this.Path4ExtExcludes)
