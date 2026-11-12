@@ -79,11 +79,11 @@ type TSrvConfig struct {
 	SecretOn         int64 //#开启数据加密
 	SecretByKeyIndex int64 //#密钥所在索引
 	SecretOnDataBase int64 //#数据存储加密.{默认:0}
-	SecretOnNewWorks int64 //#数据通讯加密.{默认:0}
+	SecretOnNetWorks int64 //#数据通讯加密.{默认:0}
 	SecretOnPlatForm int64 //#数据加密平台.{默认:0},{0:甬政,1:量讯,2:KMS(密码云),3:FLK(加密机)};以主仓 utils/const/const_secret_on.go 为准
 	VerifyOn         int64 //#开启完整验证
 	VerifyOnDataBase int64 //#数据完整验证.{默认:0}
-	VerifyOnNewWorks int64 //#通讯完整验证.{默认:0}
+	VerifyOnNetWorks int64 //#通讯完整验证.{默认:0}
 	VerificationMode int64 //#完整验证模式
 
 	Path4ExtExcludes string //#禁止附件类型:以逗号隔开
@@ -162,11 +162,11 @@ func (this TSrvConfig) MarshalJSON() ([]byte, error) {
 	result["secretOn"] = this.SecretOn
 	result["secretByKeyIndex"] = this.SecretByKeyIndex
 	result["secretOnDataBase"] = this.SecretOnDataBase
-	result["secretOnNewWorks"] = this.SecretOnNewWorks
+	result["secretOnNetWorks"] = this.SecretOnNetWorks
 	result["secretOnPlatForm"] = this.SecretOnPlatForm
 	result["verifyOn"] = this.VerifyOn
 	result["verifyOnDataBase"] = this.VerifyOnDataBase
-	result["verifyOnNetWorks"] = this.VerifyOnNewWorks
+	result["verifyOnNetWorks"] = this.VerifyOnNetWorks
 	result["verificationMode"] = this.VerificationMode
 
 	result["path4ExtExcludes"] = this.Path4ExtExcludes
